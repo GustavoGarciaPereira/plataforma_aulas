@@ -10,9 +10,13 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..dependencies import get_current_user
+from ..models import Aula, Matricula
 from ..services.matricula_service import (
+    calcular_progresso,
+    concluir_aula,
     dados_dashboard,
     ja_matriculado,
+    listar_aulas_para_aluno,
     listar_turmas_disponiveis,
     matricular,
 )
@@ -68,3 +72,45 @@ def matricular_post(request: Request, turma_id: int, db: Session = Depends(get_d
         return RedirectResponse("/dashboard", status_code=303)
     except (ValueError, RuntimeError) as exc:
         return _erro_redirect(request, exc, "/turmas-disponiveis")
+
+
+# ---------------------------------------------------------------- RF05 ----
+
+@router.get("/turmas/{turma_id}")
+def turma_aluno(request: Request, turma_id: int, db: Session = Depends(get_db)):
+    """Página da turma: lista de aulas com player e botão de conclusão."""
+    try:
+        dados = listar_aulas_para_aluno(db, turma_id, request.session["user_id"])
+        progresso = calcular_progresso(db, turma_id, request.session["user_id"])
+    except ValueError as exc:
+        flash(request, "error", str(exc))
+        return RedirectResponse("/turmas-disponiveis", status_code=303)
+    except RuntimeError as exc:
+        return _erro_redirect(request, exc, "/dashboard")
+    dados["progresso"] = progresso
+    return templates.TemplateResponse(request, "turma_aluno.html", dados)
+
+
+@router.post("/aulas/{aula_id}/concluir", dependencies=[Depends(verificar_csrf)])
+def concluir_post(request: Request, aula_id: int, db: Session = Depends(get_db)):
+    """Marca a aula como concluída (idempotente). Matrícula resolvida pela
+    turma da aula + aluno da sessão (não dá para concluir aula de outra turma)."""
+    try:
+        aula = db.get(Aula, aula_id)
+        if aula is None:
+            raise ValueError("Aula não encontrada.")
+        matricula = (
+            db.query(Matricula)
+            .filter(
+                Matricula.aluno_id == request.session["user_id"],
+                Matricula.turma_id == aula.turma_id,
+            )
+            .first()
+        )
+        if matricula is None:
+            raise ValueError("Você não está matriculado nesta turma.")
+        concluir_aula(db, matricula.id, aula_id)
+        flash(request, "success", "Aula concluída! 🎉")
+        return RedirectResponse(f"/turmas/{aula.turma_id}", status_code=303)
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, "/dashboard")

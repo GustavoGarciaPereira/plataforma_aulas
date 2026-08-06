@@ -88,3 +88,114 @@ def dados_dashboard(db: Session, aluno_id: int) -> dict:
     except Exception as exc:
         db.rollback()
         raise RuntimeError("Erro ao montar o dashboard.") from exc
+
+
+# ------------------------------------------------------------ RF05/RF06 ----
+
+def concluir_aula(db: Session, matricula_id: int, aula_id: int) -> AulaConcluida | None:
+    """Registra conclusão de aula (RF05). Idempotente: None se já existia.
+
+    Anti-trapaça: a aula precisa pertencer à turma da matrícula.
+    """
+    try:
+        matricula = db.get(Matricula, matricula_id)
+        if matricula is None:
+            raise ValueError("Matrícula não encontrada.")
+        aula = db.get(Aula, aula_id)
+        if aula is None or aula.turma_id != matricula.turma_id:
+            raise ValueError("Aula não pertence a esta turma.")
+
+        existente = (
+            db.query(AulaConcluida)
+            .filter(
+                AulaConcluida.matricula_id == matricula_id,
+                AulaConcluida.aula_id == aula_id,
+            )
+            .first()
+        )
+        if existente:
+            return None  # já concluída — nada a fazer
+
+        conclusao = AulaConcluida(matricula_id=matricula_id, aula_id=aula_id)
+        db.add(conclusao)
+        db.commit()
+        db.refresh(conclusao)
+        return conclusao
+    except ValueError:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise RuntimeError("Erro ao concluir aula.") from exc
+
+
+def listar_aulas_para_aluno(db: Session, turma_id: int, aluno_id: int) -> dict:
+    """Aulas da turma para o aluno matriculado (RF05): dicts com embed e status.
+
+    Lança ValueError "Você não está matriculado nesta turma." se não matriculado.
+    """
+    try:
+        matricula = (
+            db.query(Matricula)
+            .filter(Matricula.aluno_id == aluno_id, Matricula.turma_id == turma_id)
+            .first()
+        )
+        if matricula is None:
+            raise ValueError("Você não está matriculado nesta turma.")
+
+        turma = db.get(Turma, turma_id)
+        aulas = (
+            db.query(Aula)
+            .filter(Aula.turma_id == turma_id)
+            .order_by(Aula.ordem, Aula.id)
+            .all()
+        )
+        concluidas = {
+            c.aula_id
+            for c in db.query(AulaConcluida)
+            .filter(AulaConcluida.matricula_id == matricula.id)
+            .all()
+        }
+        itens = [
+            {
+                "id": a.id,
+                "titulo": a.titulo,
+                "ordem": a.ordem,
+                "embed_url": a.embed_url,
+                "concluida": a.id in concluidas,
+            }
+            for a in aulas
+        ]
+        return {"turma": turma, "aulas": itens}
+    except ValueError:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise RuntimeError("Erro ao listar aulas.") from exc
+
+
+def calcular_progresso(db: Session, turma_id: int, aluno_id: int) -> dict:
+    """Progresso do aluno numa turma (RF06): {total, concluidas, percentual}."""
+    try:
+        matricula = (
+            db.query(Matricula)
+            .filter(Matricula.aluno_id == aluno_id, Matricula.turma_id == turma_id)
+            .first()
+        )
+        if matricula is None:
+            raise ValueError("Você não está matriculado nesta turma.")
+        total = db.query(Aula).filter(Aula.turma_id == turma_id).count()
+        concluidas = (
+            db.query(AulaConcluida)
+            .filter(AulaConcluida.matricula_id == matricula.id)
+            .count()
+        )
+        return {
+            "total": total,
+            "concluidas": concluidas,
+            "percentual": round(concluidas / total * 100) if total else 0,
+        }
+    except ValueError:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise RuntimeError("Erro ao calcular progresso.") from exc

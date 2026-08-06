@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Cronograma — {{ turma.nome }}{% endblock %}
+
+{% block content %}
+<div class="print:hidden flex items-center justify-between mb-4">
+  <a href="{{ url_for('turma_aluno', turma_id=turma.id) }}" class="text-sm text-slate-400 hover:underline">
+    ← Voltar para a turma
+  </a>
+  <button onclick="window.print()"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition">
+    🖨️ Imprimir / Salvar PDF
+  </button>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 p-8">
+  <h1 class="text-2xl font-bold">Cronograma — {{ turma.nome }}</h1>
+  <p class="text-sm text-slate-500 mt-1">{{ turma.tipo|capitalize }} · {{ aulas|length }} aula(s)</p>
+  {% if turma.descricao %}
+    <p class="text-sm text-slate-500 mt-2">{{ turma.descricao }}</p>
+  {% endif %}
+
+  <ol class="mt-6 space-y-2">
+    {% for aula in aulas %}
+      <li class="flex items-baseline gap-3 py-2 border-b border-slate-100 text-sm">
+        <span class="font-mono text-slate-400 w-8 shrink-0">{{ aula.ordem }}.</span>
+        <span class="font-medium">{{ aula.titulo }}</span>
+      </li>
+    {% else %}
+      <li class="text-slate-400 py-2">Nenhuma aula cadastrada.</li>
+    {% endfor %}
+  </ol>
+
+  <p class="text-xs text-slate-400 mt-6">Gerado em {{ now.strftime('%d/%m/%Y') }} — Plataforma de Redação</p>
+</div>
+{% endblock %}

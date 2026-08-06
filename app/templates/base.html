@@ -16,7 +16,7 @@
 </head>
 <body class="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased">
 
-  <header class="bg-white border-b border-slate-200 shadow-sm">
+  <header class="bg-white border-b border-slate-200 shadow-sm print:hidden">
     <nav class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
       <a href="{{ url_for('home') }}" class="font-bold text-lg text-indigo-600 whitespace-nowrap">
         ✍️ Redação<span class="text-slate-400">+</span>
@@ -70,7 +70,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 print:hidden">
     Plataforma de Redação — piloto (MVP Semana 1)
   </footer>
 
