@@ -11,9 +11,15 @@ from starlette.requests import Request
 
 
 def flash(request: Request, categoria: str, texto: str) -> None:
-    """Adiciona uma mensagem flash à sessão (exibida no próximo render)."""
+    """Adiciona uma mensagem flash à sessão (exibida no próximo render).
+
+    O setdefault NÃO marca a Session como modificada quando a chave já
+    existe (Starlette >= 1.x) — sem o __setitem__ abaixo, um segundo flash
+    na mesma sessão nunca chegaria ao cookie.
+    """
     mensagens = request.session.setdefault("flash_messages", [])
     mensagens.append([categoria, texto])  # lista — sessão precisa ser JSON-serializável
+    request.session["flash_messages"] = mensagens  # garante session.modified=True
 
 
 def usuario_processor(request: Request) -> dict:

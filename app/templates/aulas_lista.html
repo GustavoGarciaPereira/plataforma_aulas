@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Aulas de {{ turma.nome }} — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div>
+    <a href="{{ url_for('dashboard_professor') }}" class="text-sm text-slate-400 hover:underline">← Minhas Turmas</a>
+    <h1 class="text-2xl font-bold mt-1">{{ turma.nome }}</h1>
+    <p class="text-sm text-slate-500">{{ turma.descricao or "Sem descrição." }}</p>
+  </div>
+  <a href="{{ url_for('aula_nova', turma_id=turma.id) }}"
+     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition whitespace-nowrap">
+    + Nova Aula
+  </a>
+</div>
+
+{% if itens %}
+  <ol class="space-y-5">
+    {% for item in itens %}
+      <li class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex gap-4">
+        {% if item.thumbnail %}
+          <img src="{{ item.thumbnail }}" alt="Miniatura da aula" loading="lazy"
+               class="w-36 h-24 object-cover rounded-lg shrink-0 hidden sm:block">
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 font-mono text-xs px-2 py-0.5 rounded">{{ item.aula.ordem }}</span>
+            <h3 class="font-semibold truncate">{{ item.aula.titulo }}</h3>
+          </div>
+
+          {% if item.aula.embed_url %}
+            <iframe class="mt-3 w-full aspect-video rounded-lg"
+                    src="{{ item.aula.embed_url }}" title="{{ item.aula.titulo }}"
+                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen loading="lazy"></iframe>
+          {% else %}
+            <p class="text-xs text-red-600 mt-2">URL do YouTube inválida: {{ item.aula.youtube_url }}</p>
+          {% endif %}
+
+          <div class="flex flex-wrap items-center gap-4 mt-3 text-sm">
+            <a href="{{ url_for('aula_editar', aula_id=item.aula.id) }}"
+               class="text-indigo-600 hover:underline">Editar</a>
+            <form method="post" action="{{ url_for('aula_mover', aula_id=item.aula.id) }}" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="hidden" name="direcao" value="cima">
+              <button type="submit" class="text-slate-500 hover:underline">↑ Cima</button>
+            </form>
+            <form method="post" action="{{ url_for('aula_mover', aula_id=item.aula.id) }}" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="hidden" name="direcao" value="baixo">
+              <button type="submit" class="text-slate-500 hover:underline">↓ Baixo</button>
+            </form>
+            <form method="post" action="{{ url_for('aula_excluir', aula_id=item.aula.id) }}"
+                  onsubmit="return confirm('Excluir esta aula?')" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit" class="text-red-600 hover:underline">Excluir</button>
+            </form>
+          </div>
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+{% else %}
+  <div class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+    Nenhuma aula ainda. Adicione a primeira!
+  </div>
+{% endif %}
+{% endblock %}

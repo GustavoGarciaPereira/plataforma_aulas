@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ "Editar Turma" if turma else "Nova Turma" }} — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto mt-6 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+  <a href="{{ url_for('dashboard_professor') }}" class="text-sm text-slate-400 hover:underline">← Minhas Turmas</a>
+  <h1 class="text-2xl font-bold mt-1 mb-6">{{ "Editar Turma" if turma else "Nova Turma" }}</h1>
+
+  <form method="post"
+        action="{{ url_for('turma_editar_post', turma_id=turma.id) if turma else url_for('turma_nova_post') }}"
+        class="space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div>
+      <label for="nome" class="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+      <input type="text" id="nome" name="nome" required value="{{ turma.nome if turma else '' }}"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    </div>
+
+    <div>
+      <label for="descricao" class="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
+      <textarea id="descricao" name="descricao" rows="3"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ turma.descricao if turma else '' }}</textarea>
+    </div>
+
+    <div>
+      <label for="tipo" class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
+      <select id="tipo" name="tipo"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        {% for t in tipos %}
+          <option value="{{ t }}" {% if turma and turma.tipo == t %}selected{% endif %}>{{ t|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition">
+      {{ "Salvar alterações" if turma else "Criar turma" }}
+    </button>
+  </form>
+</div>
+{% endblock %}

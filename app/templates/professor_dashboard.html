@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Minhas Turmas — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">Minhas Turmas</h1>
+  <a href="{{ url_for('turma_nova') }}"
+     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition">
+    + Nova Turma
+  </a>
+</div>
+
+{% if turmas %}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {% for turma in turmas %}
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
+        <h2 class="font-semibold text-lg">{{ turma.nome }}</h2>
+        <p class="text-xs uppercase tracking-wide text-indigo-500 mt-1">{{ turma.tipo }}</p>
+        <p class="text-sm text-slate-500 mt-2 flex-1">{{ turma.descricao or "Sem descrição." }}</p>
+        <div class="flex flex-wrap items-center gap-4 mt-4 text-sm">
+          <a href="{{ url_for('aulas_lista', turma_id=turma.id) }}"
+             class="text-indigo-600 hover:underline font-medium">Ver Aulas →</a>
+          <a href="{{ url_for('turma_editar', turma_id=turma.id) }}"
+             class="text-slate-500 hover:underline">Editar</a>
+          <form method="post" action="{{ url_for('turma_excluir', turma_id=turma.id) }}"
+                onsubmit="return confirm('Tem certeza que deseja excluir esta turma? As aulas vinculadas também serão excluídas.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="text-red-600 hover:underline">Excluir</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+    Nenhuma turma ainda. Crie a primeira!
+  </div>
+{% endif %}
+{% endblock %}

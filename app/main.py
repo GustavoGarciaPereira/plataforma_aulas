@@ -15,8 +15,17 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import settings
 from .templating import templates  # noqa: F401  # inicializa os templates
+from .utils.flash import flash
+from .utils.redirecionar import RedirecionarComFlash
 
 app = FastAPI(title="Plataforma de Redação")
+
+
+@app.exception_handler(RedirecionarComFlash)
+async def redirecionar_com_flash(request: Request, exc: RedirecionarComFlash):
+    """Converte RedirecionarComFlash (de dependências) em flash + redirect."""
+    flash(request, exc.categoria, exc.mensagem)
+    return RedirectResponse(exc.destino, status_code=exc.status_code)
 
 app.add_middleware(
     SessionMiddleware,
@@ -34,10 +43,11 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="s
 # --- Routers do MVP (RF01–RF07) ---
 # TODO: descomentar conforme os arquivos forem criados em app/routers/.
 from .routers import auth  # noqa: E402  # RF01
+from .routers import professor  # noqa: E402  # RF02/RF03
 
 app.include_router(auth.router)
-# from .routers import aluno, professor, turmas, utils
-# app.include_router(professor.router)
+app.include_router(professor.router)
+# from .routers import aluno, turmas, utils
 # app.include_router(aluno.router)
 # app.include_router(turmas.router)
 # app.include_router(utils.router)

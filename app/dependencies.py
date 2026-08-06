@@ -2,22 +2,24 @@
 
 - ``get_current_user``: exige sessão com user_id; senão flash + redirect ao login.
 - ``require_professor``: exige role == 'professor'; senão flash + redirect ao dashboard.
+
+Ambas LANÇAM RedirecionarComFlash (o handler em app/main.py converte em
+flash + redirect) — retornar Response de dependência não interrompe o
+endpoint no FastAPI 0.141+.
 """
 
 from fastapi import Depends, Request
-from fastapi.responses import RedirectResponse
 
-from .utils.flash import flash
+from .utils.redirecionar import RedirecionarComFlash
 
 
-def get_current_user(request: Request) -> dict | None:
+def get_current_user(request: Request) -> dict:
     """Retorna {user_id, role, nome} da sessão; redireciona ao login se anônimo."""
     user_id = request.session.get("user_id")
     if user_id is None:
-        flash(request, "info", "Faça login para continuar.")
-        # Retorno (não raise) de uma Response interrompe a dependência e é
-        # usado como resposta final — padrão FastAPI.
-        return RedirectResponse("/auth/login", status_code=302)
+        raise RedirecionarComFlash(
+            "/auth/login", "info", "Faça login para continuar."
+        )
     return {
         "user_id": user_id,
         "role": request.session.get("role"),
@@ -25,11 +27,10 @@ def get_current_user(request: Request) -> dict | None:
     }
 
 
-def require_professor(
-    request: Request, usuario: dict = Depends(get_current_user)
-) -> dict:
+def require_professor(request: Request, usuario: dict = Depends(get_current_user)) -> dict:
     """Como get_current_user, mas restringe a usuários com role 'professor'."""
     if usuario["role"] != "professor":
-        flash(request, "error", "Acesso restrito à professora.")
-        return RedirectResponse("/dashboard", status_code=302)
+        raise RedirecionarComFlash(
+            "/dashboard", "error", "Acesso restrito à professora."
+        )
     return usuario

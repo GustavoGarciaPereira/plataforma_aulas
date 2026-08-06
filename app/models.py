@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from .utils.youtube import YouTubeURLError, embed_url_from_url
+
 
 def utcnow() -> datetime:
     """Datetime atual timezone-aware em UTC (evita ambiguidade de fuso)."""
@@ -112,6 +114,14 @@ class Aula(Base):
         back_populates="aula",
         cascade="all, delete-orphan",
     )
+
+    @property
+    def embed_url(self) -> str | None:
+        """URL de embed pronta para iframe (youtube-nocookie) ou None se inválida."""
+        try:
+            return embed_url_from_url(self.youtube_url)
+        except YouTubeURLError:
+            return None
 
     def __repr__(self) -> str:
         return f"<Aula id={self.id} ordem={self.ordem} titulo={self.titulo!r}>"

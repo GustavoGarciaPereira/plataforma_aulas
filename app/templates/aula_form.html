@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ "Editar Aula" if aula else "Nova Aula" }} — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto mt-6 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+  <a href="{{ url_for('aulas_lista', turma_id=turma.id) }}" class="text-sm text-slate-400 hover:underline">
+    ← Aulas de {{ turma.nome }}
+  </a>
+  <h1 class="text-2xl font-bold mt-1 mb-6">{{ "Editar Aula" if aula else "Nova Aula" }}</h1>
+
+  <form method="post"
+        action="{{ url_for('aula_editar_post', aula_id=aula.id) if aula else url_for('aula_nova_post', turma_id=turma.id) }}"
+        class="space-y-4"
+        onsubmit="var u=document.getElementById('youtube_url').value; if(u && !/youtu\.?be/i.test(u)){ alert('Informe uma URL do YouTube (watch, youtu.be, shorts...).'); return false; }">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div>
+      <label for="titulo" class="block text-sm font-medium text-slate-700 mb-1">Título</label>
+      <input type="text" id="titulo" name="titulo" required value="{{ aula.titulo if aula else '' }}"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    </div>
+
+    <div>
+      <label for="youtube_url" class="block text-sm font-medium text-slate-700 mb-1">URL do YouTube</label>
+      <input type="url" id="youtube_url" name="youtube_url" required
+             value="{{ aula.youtube_url if aula else '' }}"
+             placeholder="https://www.youtube.com/watch?v=..."
+             class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <p class="text-xs text-slate-400 mt-1">Aceita watch, youtu.be, shorts, embed e live. Validada no servidor.</p>
+    </div>
+
+    <div>
+      <label for="ordem" class="block text-sm font-medium text-slate-700 mb-1">Ordem</label>
+      <input type="number" id="ordem" name="ordem" min="1"
+             value="{{ aula.ordem if aula else (proxima_ordem if not aula and proxima_ordem else '') }}"
+             {% if not aula %}placeholder="automática ({{ proxima_ordem }})"{% endif %}
+             class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <p class="text-xs text-slate-400 mt-1">Vazio = próxima posição disponível.</p>
+    </div>
+
+    <button type="submit"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition">
+      {{ "Salvar alterações" if aula else "Adicionar aula" }}
+    </button>
+  </form>
+</div>
+{% endblock %}
