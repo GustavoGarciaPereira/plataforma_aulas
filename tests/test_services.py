@@ -130,5 +130,5 @@ def test_embed_url_property(db):
     ruim = Aula(turma_id=turma.id, titulo="Ruim", youtube_url=URL_RUIM, ordem=2)
     db.add(ruim)
     db.commit()
-    assert boa.embed_url == "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"
+    assert boa.embed_url == "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0"
     assert ruim.embed_url is None

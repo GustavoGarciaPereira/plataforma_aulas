@@ -49,7 +49,7 @@ def test_turma_matriculado_mostra_aulas_e_player(client):
     assert r.status_code == 200
     assert "Intensivo ENEM" in r.text
     assert "Aula 1" in r.text and "Aula 2" in r.text
-    assert "youtube-nocookie.com/embed/dQw4w9WgXcQ" in r.text  # player
+    assert "youtube.com/embed/dQw4w9WgXcQ" in r.text  # player
     assert "Marcar como concluída" in r.text
 
 

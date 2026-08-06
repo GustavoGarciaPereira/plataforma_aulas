@@ -83,8 +83,10 @@ def video_id_from_url(url: str) -> str:
 def embed_url_from_url(url: str) -> str:
     """Converte uma URL do YouTube em URL de embed pronta para o iframe.
 
-    Usa o domínio ``youtube-nocookie.com`` (menos cookies de rastreio para o
-    aluno) e ``rel=0`` (não sugere vídeos de outros canais no final).
+    Usa o domínio canônico www.youtube.com/embed (máxima compatibilidade:
+    youtube-nocookie.com exibe "Video unavailable" em algumas regiões/redes,
+    mesmo com vídeos válidos). Para priorizar privacidade, troque para
+    "https://www.youtube-nocookie.com/embed/{id}?rel=0".
     """
     video_id = video_id_from_url(url)
-    return f"https://www.youtube-nocookie.com/embed/{video_id}?rel=0"
+    return f"https://www.youtube.com/embed/{video_id}?rel=0"

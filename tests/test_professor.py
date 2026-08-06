@@ -144,7 +144,7 @@ def test_criar_aula_url_valida(client, login_professora):
     assert (r.status_code, r.headers["location"]) == (303, f"/professor/turmas/{turma_id}/aulas")
     r = client.get(f"/professor/turmas/{turma_id}/aulas")
     assert "Introdução à redação" in r.text
-    assert "youtube-nocookie.com/embed/dQw4w9WgXcQ" in r.text  # embed gerado
+    assert "youtube.com/embed/dQw4w9WgXcQ" in r.text  # embed gerado
     with SessionLocal() as db:
         aula = db.query(Aula).filter(Aula.turma_id == turma_id).one()
         assert aula.ordem == 1  # ordem automática
