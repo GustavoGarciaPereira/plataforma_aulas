@@ -42,13 +42,14 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="s
 
 # --- Routers do MVP (RF01–RF07) ---
 # TODO: descomentar conforme os arquivos forem criados em app/routers/.
+from .routers import aluno  # noqa: E402  # RF04/RF06 (dashboard, matrícula)
 from .routers import auth  # noqa: E402  # RF01
 from .routers import professor  # noqa: E402  # RF02/RF03
 
 app.include_router(auth.router)
 app.include_router(professor.router)
-# from .routers import aluno, turmas, utils
-# app.include_router(aluno.router)
+app.include_router(aluno.router)
+# from .routers import turmas, utils
 # app.include_router(turmas.router)
 # app.include_router(utils.router)
 

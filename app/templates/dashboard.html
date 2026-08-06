@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold">Olá, {{ usuario.nome }}! 👋</h1>
+    <p class="text-sm text-slate-500 mt-1">Acompanhe seu progresso nas turmas.</p>
+  </div>
+  <a href="{{ url_for('listar_turmas_disponiveis') }}"
+     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition whitespace-nowrap">
+    Turmas disponíveis
+  </a>
+</div>
+
+{% if turmas %}
+  <h2 class="font-semibold text-lg mb-3">Minhas Turmas</h2>
+  <div class="grid gap-4 sm:grid-cols-2">
+    {% for item in turmas %}
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="font-semibold text-lg">{{ item.turma.nome }}</h3>
+            <p class="text-xs uppercase tracking-wide text-indigo-500 mt-0.5">{{ item.turma.tipo }}</p>
+          </div>
+          <span class="text-sm font-bold text-indigo-600">{{ item.percentual }}%</span>
+        </div>
+        <div class="mt-3 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full bg-indigo-500 rounded-full" style="width: {{ item.percentual }}%"></div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">
+          {{ item.aulas_concluidas }} de {{ item.total_aulas }} aulas concluídas
+        </p>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if ultimas_concluidas %}
+    <h2 class="font-semibold text-lg mt-8 mb-3">Últimas aulas concluídas</h2>
+    <ul class="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
+      {% for c in ultimas_concluidas %}
+        <li class="flex items-center justify-between px-5 py-3 text-sm">
+          <span class="font-medium text-emerald-700">✅ {{ c.aula.titulo }}</span>
+          <span class="text-slate-400">{{ c.concluida_em.strftime('%d/%m/%Y') }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% else %}
+  <div class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+    <p class="text-lg mb-2">Você ainda não está matriculado em nenhuma turma.</p>
+    <a href="{{ url_for('listar_turmas_disponiveis') }}" class="text-indigo-600 hover:underline">
+      Ver turmas disponíveis →
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

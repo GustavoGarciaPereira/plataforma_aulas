@@ -1,0 +1,70 @@
+"""RF04/RF06 — Matrícula e progresso do aluno. PRD v1.0, seção 5.1.
+
+Router fino: lógica em app/services/matricula_service.py; aqui ficam
+respostas, flash e redirects. Todas as rotas exigem login (get_current_user).
+"""
+
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+
+from ..database import get_db
+from ..dependencies import get_current_user
+from ..services.matricula_service import (
+    dados_dashboard,
+    ja_matriculado,
+    listar_turmas_disponiveis,
+    matricular,
+)
+from ..templating import templates
+from ..utils.csrf import verificar_csrf
+from ..utils.flash import flash
+
+router = APIRouter(tags=["aluno"], dependencies=[Depends(get_current_user)])
+
+
+def _erro_redirect(request: Request, exc: Exception, destino: str) -> RedirectResponse:
+    """ValueError -> flash da mensagem; RuntimeError -> flash genérico."""
+    if isinstance(exc, ValueError):
+        flash(request, "error", str(exc))
+    else:
+        flash(request, "error", "Erro interno. Tente novamente.")
+    return RedirectResponse(destino, status_code=303)
+
+
+@router.get("/dashboard")
+def dashboard(request: Request, db: Session = Depends(get_db)):
+    """Dashboard do aluno (RF06); professora é redirecionada ao seu painel."""
+    if request.session.get("role") == "professor":
+        return RedirectResponse("/professor/dashboard", status_code=302)
+    try:
+        dados = dados_dashboard(db, request.session["user_id"])
+    except RuntimeError as exc:
+        return _erro_redirect(request, exc, "/dashboard")
+    return templates.TemplateResponse(request, "dashboard.html", dados)
+
+
+@router.get("/turmas-disponiveis")
+def listar_turmas_disponiveis_view(request: Request, db: Session = Depends(get_db)):
+    try:
+        turmas = listar_turmas_disponiveis(db)
+        aluno_id = request.session["user_id"]
+        itens = [
+            {"turma": t, "matriculado": ja_matriculado(db, aluno_id, t.id)}
+            for t in turmas
+        ]
+    except RuntimeError as exc:
+        return _erro_redirect(request, exc, "/turmas-disponiveis")
+    return templates.TemplateResponse(
+        request, "turmas_disponiveis.html", {"itens": itens}
+    )
+
+
+@router.post("/turmas/{turma_id}/matricular", dependencies=[Depends(verificar_csrf)])
+def matricular_post(request: Request, turma_id: int, db: Session = Depends(get_db)):
+    try:
+        matricular(db, request.session["user_id"], turma_id)
+        flash(request, "success", "Matrícula realizada! Bem-vindo(a) à turma.")
+        return RedirectResponse("/dashboard", status_code=303)
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, "/turmas-disponiveis")

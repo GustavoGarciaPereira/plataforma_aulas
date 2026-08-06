@@ -24,8 +24,12 @@
 
       {% if usuario %}
         <div class="flex items-center gap-4 text-sm">
-          <a href="{{ url_for('dashboard') }}" class="hover:text-indigo-600">Dashboard</a>
-          <a href="{{ url_for('listar_turmas_disponiveis') }}" class="hover:text-indigo-600">Turmas disponíveis</a>
+          {% if usuario.role == "professor" %}
+            <a href="{{ url_for('dashboard_professor') }}" class="hover:text-indigo-600">Minhas Turmas</a>
+          {% else %}
+            <a href="{{ url_for('dashboard') }}" class="hover:text-indigo-600">Dashboard</a>
+            <a href="{{ url_for('listar_turmas_disponiveis') }}" class="hover:text-indigo-600">Turmas disponíveis</a>
+          {% endif %}
           <span class="text-slate-500 hidden sm:inline">Olá, {{ usuario.nome }}</span>
           <form method="post" action="{{ url_for('logout') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
