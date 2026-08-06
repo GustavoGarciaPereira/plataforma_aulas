@@ -21,6 +21,7 @@ htmlcov/
 # Config sensível
 .env
 .env.*
+!.env.example
 
 # IDE / SO
 .vscode/
@@ -28,5 +29,6 @@ htmlcov/
 .DS_Store
 
 # Banco local e logs
+*.db
 *.sqlite3
 *.log

@@ -2,11 +2,13 @@
 # Stack: FastAPI + Jinja2 + SQLAlchemy + PostgreSQL + WeasyPrint
 
 fastapi
+itsdangerous            # SessionMiddleware do Starlette (sessões por cookie)
 uvicorn[standard]
 jinja2
 python-multipart        # necessário para formulários (Form(...)) no FastAPI
 sqlalchemy
 psycopg2-binary         # driver PostgreSQL síncrono (dev); usar psycopg2 no deploy
+pydantic-settings       # config via .env (DATABASE_URL, SECRET_KEY)
 alembic
 passlib[bcrypt]
 bcrypt<4.1              # pin para evitar incompatibilidade conhecida com passlib 1.7.4
