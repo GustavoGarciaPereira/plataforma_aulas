@@ -2,7 +2,7 @@
 
 - Sessões por cookie assinado (Starlette SessionMiddleware), autenticação
   guarda apenas user_id / role / nome na sessão.
-- Jinja2Templates com context processors (mensagens flash + usuário logado).
+- Templates via app/templating.py (context processors: usuário, flash, CSRF).
 - Estáticos de app/static/.
 """
 
@@ -12,10 +12,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.templating import Jinja2Templates
 
 from .config import settings
-from .utils.flash import mensagens_processor, usuario_processor
+from .templating import templates  # noqa: F401  # inicializa os templates
 
 app = FastAPI(title="Plataforma de Redação")
 
@@ -29,18 +28,15 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-templates = Jinja2Templates(
-    directory=BASE_DIR / "app" / "templates",
-    context_processors=[usuario_processor, mensagens_processor],
-)
-
 # Estáticos (css/js/imagens próprios, se necessário)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="static")
 
 # --- Routers do MVP (RF01–RF07) ---
 # TODO: descomentar conforme os arquivos forem criados em app/routers/.
-# from .routers import auth, aluno, professor, turmas, utils
-# app.include_router(auth.router)
+from .routers import auth  # noqa: E402  # RF01
+
+app.include_router(auth.router)
+# from .routers import aluno, professor, turmas, utils
 # app.include_router(professor.router)
 # app.include_router(aluno.router)
 # app.include_router(turmas.router)
@@ -52,4 +48,4 @@ def home(request: Request) -> RedirectResponse:
     """Raiz: dashboard se logado, senão tela de login."""
     if "user_id" in request.session:
         return RedirectResponse("/dashboard", status_code=302)
-    return RedirectResponse("/login", status_code=302)
+    return RedirectResponse("/auth/login", status_code=302)

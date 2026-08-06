@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Layout base do MVP — Plataforma de Correção e Aulas de Redação (PRD seção 8).
-  - Jinja2 com herança de templates (os filhos usam {% extends "base.html" %});
+  - Jinja2 com herança de templates (os filhos usam extends de base.html);
   - Tailwind CSS via CDN (decisão do PRD para o MVP; migrar para build próprio
     quando houver autenticação mais rígida ou requisito de performance);
   - Navegação simples + mensagens flash + rodapé.
@@ -28,6 +28,7 @@
           <a href="{{ url_for('listar_turmas_disponiveis') }}" class="hover:text-indigo-600">Turmas disponíveis</a>
           <span class="text-slate-500 hidden sm:inline">Olá, {{ usuario.nome }}</span>
           <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="text-red-600 hover:text-red-700">Sair</button>
           </form>
         </div>
