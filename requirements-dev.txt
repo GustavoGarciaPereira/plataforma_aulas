@@ -1,0 +1,4 @@
+# Dependências de desenvolvimento/teste — MVP Semana 1
+-r requirements.txt
+pytest
+httpx                   # TestClient do FastAPI (Starlette) exige httpx

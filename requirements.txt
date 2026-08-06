@@ -1,0 +1,13 @@
+# Dependências do MVP (Semana 1) — PRD v1.0, seções 6 e 8
+# Stack: FastAPI + Jinja2 + SQLAlchemy + PostgreSQL + WeasyPrint
+
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart        # necessário para formulários (Form(...)) no FastAPI
+sqlalchemy
+psycopg2-binary         # driver PostgreSQL síncrono (dev); usar psycopg2 no deploy
+alembic
+passlib[bcrypt]
+bcrypt<4.1              # pin para evitar incompatibilidade conhecida com passlib 1.7.4
+weasyprint              # PDF do cronograma (RF07) — exige libs de sistema (Pango/Cairo)

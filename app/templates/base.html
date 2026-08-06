@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+  Layout base do MVP — Plataforma de Correção e Aulas de Redação (PRD seção 8).
+  - Jinja2 com herança de templates (os filhos usam {% extends "base.html" %});
+  - Tailwind CSS via CDN (decisão do PRD para o MVP; migrar para build próprio
+    quando houver autenticação mais rígida ou requisito de performance);
+  - Navegação simples + mensagens flash + rodapé.
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Plataforma de Redação{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased">
+
+  <header class="bg-white border-b border-slate-200 shadow-sm">
+    <nav class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <a href="{{ url_for('home') }}" class="font-bold text-lg text-indigo-600 whitespace-nowrap">
+        ✍️ Redação<span class="text-slate-400">+</span>
+      </a>
+
+      {% if usuario %}
+        <div class="flex items-center gap-4 text-sm">
+          <a href="{{ url_for('dashboard') }}" class="hover:text-indigo-600">Dashboard</a>
+          <a href="{{ url_for('listar_turmas_disponiveis') }}" class="hover:text-indigo-600">Turmas disponíveis</a>
+          <span class="text-slate-500 hidden sm:inline">Olá, {{ usuario.nome }}</span>
+          <form method="post" action="{{ url_for('logout') }}">
+            <button type="submit" class="text-red-600 hover:text-red-700">Sair</button>
+          </form>
+        </div>
+      {% else %}
+        <div class="flex items-center gap-3 text-sm">
+          <a href="{{ url_for('login') }}" class="text-slate-600 hover:text-indigo-600">Entrar</a>
+          <a href="{{ url_for('cadastro') }}"
+             class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700">Criar conta</a>
+        </div>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-6">
+    {# Mensagens flash — o app injeta `mensagens` (lista de tuplas (categoria, texto))
+       na sessão via helper `flash()` e passa à variável ao renderizar.
+       Categorias usadas: success | error | info. #}
+    {% with %}
+      {% set cores = {
+        "success": "bg-emerald-50 border-emerald-300 text-emerald-800",
+        "error":   "bg-red-50 border-red-300 text-red-800",
+        "info":    "bg-sky-50 border-sky-300 text-sky-800",
+      } %}
+      {% if mensagens %}
+        <div class="space-y-2 mb-4">
+          {% for categoria, texto in mensagens %}
+            <div class="rounded-lg border px-4 py-3 text-sm {{ cores.get(categoria, cores['info']) }}">
+              {{ texto }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    Plataforma de Redação — piloto (MVP Semana 1)
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
