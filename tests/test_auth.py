@@ -48,7 +48,8 @@ def test_login_senha_errada_flash(client):
 def test_post_sem_csrf_rejeitado(client):
     """POST sem token CSRF não executa o login (flash de sessão expirada)."""
     r = client.post(
-        "/auth/login", data={"email": "carla@exemplo.com", "senha": "123456"},
+        "/auth/login",
+        data={"email": "carla@exemplo.com", "senha": "123456"},
         follow_redirects=False,
     )
     assert r.status_code == 303

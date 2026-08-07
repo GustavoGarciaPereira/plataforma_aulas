@@ -13,11 +13,11 @@ from pathlib import Path
 # Bootstrap: permite rodar como `python -m app.seed` ou `python app/seed.py`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy.exc import OperationalError, ProgrammingError  # noqa: E402
+from sqlalchemy.exc import OperationalError, ProgrammingError
 
-from app.database import SessionLocal  # noqa: E402
-from app.models import Professor  # noqa: E402
-from app.security import hash_senha  # noqa: E402
+from app.database import SessionLocal
+from app.models import Professor
+from app.security import hash_senha
 
 # Senha padrão do seed. Em produção, defina SEED_PROFESSOR_SENHA — nunca use
 # a padrão fora de desenvolvimento.
@@ -28,9 +28,7 @@ EMAIL_PROFESSOR_PADRAO = "carla@exemplo.com"
 
 def main() -> None:
     with SessionLocal() as db:
-        existe = (
-            db.query(Professor).filter(Professor.email == EMAIL_PROFESSOR_PADRAO).first()
-        )
+        existe = db.query(Professor).filter(Professor.email == EMAIL_PROFESSOR_PADRAO).first()
         if existe:
             print(
                 f"Seed ignorado: professor {existe.email!r} já existe "
@@ -46,10 +44,7 @@ def main() -> None:
         db.add(professor)
         db.commit()
         db.refresh(professor)
-        print(
-            f"Professor padrão criado: {professor.nome} <{professor.email}> "
-            f"(id={professor.id})."
-        )
+        print(f"Professor padrão criado: {professor.nome} <{professor.email}> (id={professor.id}).")
 
 
 if __name__ == "__main__":

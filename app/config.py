@@ -21,9 +21,7 @@ class Settings(BaseSettings):
     )
 
     # Conexão com o banco. Em produção, definir via .env / variável de ambiente.
-    database_url: str = (
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/plataforma_aulas"
-    )
+    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/plataforma_aulas"
 
     # Chave de assinatura das sessões (Starlette SessionMiddleware).
     # NUNCA use o valor padrão em produção: gere com `python -c "import secrets; print(secrets.token_hex(32))"`.

@@ -6,6 +6,7 @@ Postgres disponível, rode `alembic upgrade head` para aplicar.
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "1a2b3c4d5e6f"
@@ -112,9 +113,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_aulas_concluidas_matricula_id", "aulas_concluidas", ["matricula_id"], unique=False
     )
-    op.create_index(
-        "ix_aulas_concluidas_aula_id", "aulas_concluidas", ["aula_id"], unique=False
-    )
+    op.create_index("ix_aulas_concluidas_aula_id", "aulas_concluidas", ["aula_id"], unique=False)
 
 
 def downgrade() -> None:

@@ -8,7 +8,7 @@ Uso:
 
 import secrets
 
-from fastapi import Depends, Form, Request
+from fastapi import Form, Request
 
 from .redirecionar import RedirecionarComFlash
 

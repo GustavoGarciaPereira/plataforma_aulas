@@ -44,6 +44,7 @@ router = APIRouter(
 
 # ------------------------------------------------------------- helpers ----
 
+
 def _erro_redirect(request: Request, exc: Exception, destino: str) -> RedirectResponse:
     """ValueError -> flash da mensagem; RuntimeError -> flash genérico."""
     if isinstance(exc, ValueError):
@@ -63,6 +64,7 @@ def _miniatura(youtube_url: str) -> str | None:
 
 # ---------------------------------------------------------------- RF02 ----
 
+
 @router.get("/dashboard")
 def dashboard_professor(request: Request, db: Session = Depends(get_db)):
     """Dashboard da professora: lista das suas turmas."""
@@ -70,9 +72,7 @@ def dashboard_professor(request: Request, db: Session = Depends(get_db)):
         turmas = listar_turmas_por_professor(db, request.session["user_id"])
     except RuntimeError as exc:
         return _erro_redirect(request, exc, "/professor/dashboard")
-    return templates.TemplateResponse(
-        request, "professor_dashboard.html", {"turmas": turmas}
-    )
+    return templates.TemplateResponse(request, "professor_dashboard.html", {"turmas": turmas})
 
 
 @router.get("/turmas/nova")
@@ -119,9 +119,7 @@ def turma_editar_post(
     db: Session = Depends(get_db),
 ):
     try:
-        editar_turma(
-            db, turma_id, request.session["user_id"], nome, descricao, tipo
-        )
+        editar_turma(db, turma_id, request.session["user_id"], nome, descricao, tipo)
         flash(request, "success", "Turma atualizada.")
         return RedirectResponse("/professor/dashboard", status_code=303)
     except (ValueError, RuntimeError) as exc:
@@ -140,6 +138,7 @@ def turma_excluir(request: Request, turma_id: int, db: Session = Depends(get_db)
 
 # ---------------------------------------------------------------- RF03 ----
 
+
 @router.get("/turmas/{turma_id}/aulas")
 def aulas_lista(request: Request, turma_id: int, db: Session = Depends(get_db)):
     try:
@@ -148,9 +147,7 @@ def aulas_lista(request: Request, turma_id: int, db: Session = Depends(get_db)):
     except ValueError as exc:
         return _erro_redirect(request, exc, "/professor/dashboard")
     itens = [{"aula": aula, "thumbnail": _miniatura(aula.youtube_url)} for aula in aulas]
-    return templates.TemplateResponse(
-        request, "aulas_lista.html", {"turma": turma, "itens": itens}
-    )
+    return templates.TemplateResponse(request, "aulas_lista.html", {"turma": turma, "itens": itens})
 
 
 @router.get("/turmas/{turma_id}/aulas/nova")
@@ -159,9 +156,7 @@ def aula_nova(request: Request, turma_id: int, db: Session = Depends(get_db)):
         turma = buscar_turma_do_professor(db, turma_id, request.session["user_id"])
     except ValueError as exc:
         return _erro_redirect(request, exc, "/professor/dashboard")
-    return templates.TemplateResponse(
-        request, "aula_form.html", {"turma": turma, "aula": None}
-    )
+    return templates.TemplateResponse(request, "aula_form.html", {"turma": turma, "aula": None})
 
 
 @router.post("/turmas/{turma_id}/aulas/nova", dependencies=[Depends(verificar_csrf)])
@@ -218,9 +213,7 @@ def aula_editar_post(
         flash(request, "error", "Ordem deve ser um número.")
         return RedirectResponse(destino_erro, status_code=303)
     try:
-        aula = editar_aula(
-            db, aula_id, request.session["user_id"], titulo, youtube_url, int(ordem)
-        )
+        aula = editar_aula(db, aula_id, request.session["user_id"], titulo, youtube_url, int(ordem))
         flash(request, "success", "Aula atualizada.")
         return RedirectResponse(f"/professor/turmas/{aula.turma_id}/aulas", status_code=303)
     except (ValueError, RuntimeError) as exc:

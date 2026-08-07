@@ -34,6 +34,7 @@ def _buscar_por_email(db: Session, email: str) -> tuple[Aluno | None, Professor 
 
 # ---------------------------------------------------------------- login ---
 
+
 @router.get("/login")
 def login(request: Request):
     return templates.TemplateResponse(request, "login.html", {})
@@ -68,6 +69,7 @@ def login_post(
 
 
 # -------------------------------------------------------------- cadastro ---
+
 
 @router.get("/cadastro")
 def cadastro(request: Request):
@@ -115,6 +117,7 @@ def cadastro_post(
 
 
 # ---------------------------------------------------------------- logout ---
+
 
 @router.post("/logout", dependencies=[Depends(verificar_csrf)])
 def logout(request: Request):

@@ -9,7 +9,7 @@ Ajustes técnicos aplicados em relação ao apêndice do PRD (ver análise):
     `(matricula_id, aula_id)` para impedir duplicidades (falhas técnicas do PRD).
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -19,7 +19,7 @@ from .utils.youtube import YouTubeURLError, embed_url_from_url
 
 def utcnow() -> datetime:
     """Datetime atual timezone-aware em UTC (evita ambiguidade de fuso)."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Base(DeclarativeBase):

@@ -1,9 +1,12 @@
 """E2E RF05/RF07 — página da turma, conclusão de aula e cronograma."""
 
 from app.database import SessionLocal
-from app.models import Aula, Turma
+from app.models import Aula
 from tests.conftest import extrair_csrf
-from tests.test_aluno import cadastrar_e_logar_aluno, criar_turma_da_carla, logar_professora
+from tests.test_aluno import (
+    cadastrar_e_logar_aluno,
+    criar_turma_da_carla,
+)
 
 URL_OK = "https://youtu.be/dQw4w9WgXcQ"
 
@@ -20,11 +23,14 @@ def criar_turma_com_aulas(client, nome="Intensivo ENEM", n_aulas=2) -> int:
 def matricular_aluno(client, turma_id):
     r = client.get("/turmas-disponiveis")
     token = extrair_csrf(r.text)
-    r = client.post(f"/turmas/{turma_id}/matricular", data={"csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/turmas/{turma_id}/matricular", data={"csrf_token": token}, follow_redirects=False
+    )
     assert r.headers["location"] == "/dashboard"
 
 
 # ------------------------------------------------------------- RF05 ---------
+
 
 def test_turma_sem_matricula_redireciona(client):
     turma_id = criar_turma_com_aulas(client)
@@ -92,7 +98,9 @@ def test_concluir_sem_matricula_flash_erro(client):
         aula_id = db.query(Aula).filter(Aula.turma_id == turma_id).first().id
     r = client.get("/dashboard")
     token = extrair_csrf(r.text)
-    r = client.post(f"/aulas/{aula_id}/concluir", data={"csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/aulas/{aula_id}/concluir", data={"csrf_token": token}, follow_redirects=False
+    )
     assert r.status_code == 303
     assert "Você não está matriculado" in client.get("/dashboard").text
 
@@ -116,6 +124,7 @@ def test_progresso_atualiza_no_dashboard(client):
 
 
 # ------------------------------------------------------------- RF07 ---------
+
 
 def test_cronograma_exige_login(client):
     r = client.get("/cronograma/1", follow_redirects=False)

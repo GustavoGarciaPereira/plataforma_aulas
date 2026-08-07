@@ -17,8 +17,10 @@ from ..services.matricula_service import (
     dados_dashboard,
     ja_matriculado,
     listar_aulas_para_aluno,
-    listar_turmas_disponiveis as listar_turmas_service,  # alias: o nome da rota é o mesmo
     matricular,
+)
+from ..services.matricula_service import (
+    listar_turmas_disponiveis as listar_turmas_service,  # alias: o nome da rota é o mesmo
 )
 from ..templating import templates
 from ..utils.csrf import verificar_csrf
@@ -53,15 +55,10 @@ def listar_turmas_disponiveis(request: Request, db: Session = Depends(get_db)):
     try:
         turmas = listar_turmas_service(db)
         aluno_id = request.session["user_id"]
-        itens = [
-            {"turma": t, "matriculado": ja_matriculado(db, aluno_id, t.id)}
-            for t in turmas
-        ]
+        itens = [{"turma": t, "matriculado": ja_matriculado(db, aluno_id, t.id)} for t in turmas]
     except RuntimeError as exc:
         return _erro_redirect(request, exc, "/turmas-disponiveis")
-    return templates.TemplateResponse(
-        request, "turmas_disponiveis.html", {"itens": itens}
-    )
+    return templates.TemplateResponse(request, "turmas_disponiveis.html", {"itens": itens})
 
 
 @router.post("/turmas/{turma_id}/matricular", dependencies=[Depends(verificar_csrf)])
@@ -75,6 +72,7 @@ def matricular_post(request: Request, turma_id: int, db: Session = Depends(get_d
 
 
 # ---------------------------------------------------------------- RF05 ----
+
 
 @router.get("/turmas/{turma_id}")
 def turma_aluno(request: Request, turma_id: int, db: Session = Depends(get_db)):

@@ -86,12 +86,7 @@ def excluir_turma(db: Session, turma_id: int, professor_id: int) -> None:
 
 def listar_turmas_por_professor(db: Session, professor_id: int) -> list[Turma]:
     try:
-        return (
-            db.query(Turma)
-            .filter(Turma.professor_id == professor_id)
-            .order_by(Turma.nome)
-            .all()
-        )
+        return db.query(Turma).filter(Turma.professor_id == professor_id).order_by(Turma.nome).all()
     except Exception as exc:
         db.rollback()
         raise RuntimeError("Erro ao listar turmas.") from exc

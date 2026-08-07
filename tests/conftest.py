@@ -12,11 +12,11 @@ from pathlib import Path
 _tmp_db = Path(tempfile.mkdtemp()) / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_db}"
 
-import pytest  # noqa: E402
-from starlette.testclient import TestClient  # noqa: E402
+import pytest
+from starlette.testclient import TestClient
 
-from app.database import Base, engine  # noqa: E402
-from app.seed import main as seed_main  # noqa: E402
+from app.database import Base, engine
+from app.seed import main as seed_main
 
 
 @pytest.fixture()

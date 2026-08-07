@@ -2,3 +2,4 @@
 -r requirements.txt
 pytest
 httpx                   # TestClient do FastAPI (Starlette) exige httpx
+ruff                    # linter + formatter (ruff check . / ruff format .)

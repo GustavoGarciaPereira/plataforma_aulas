@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from ..models import Aula, Turma
 from ..utils.youtube import YouTubeURLError, video_id_from_url
 
-
 # ------------------------------------------------------------ consultas ----
+
 
 def buscar_turma_do_professor(db: Session, turma_id: int, professor_id: int) -> Turma:
     """Turma por id garantindo propriedade; senão ValueError."""
@@ -32,15 +32,11 @@ def buscar_aula_da_professora(db: Session, aula_id: int, professor_id: int) -> A
 
 def listar_aulas_da_turma(db: Session, turma_id: int) -> list[Aula]:
     """Aulas da turma em ordem crescente (ordem, id)."""
-    return (
-        db.query(Aula)
-        .filter(Aula.turma_id == turma_id)
-        .order_by(Aula.ordem, Aula.id)
-        .all()
-    )
+    return db.query(Aula).filter(Aula.turma_id == turma_id).order_by(Aula.ordem, Aula.id).all()
 
 
 # --------------------------------------------------------------- escrita ----
+
 
 def _validar_url(youtube_url: str) -> None:
     """Valida URL do YouTube; lança ValueError com mensagem amigável."""
@@ -66,12 +62,12 @@ def adicionar_aula(
         _validar_url(youtube_url)
 
         if ordem is None:
-            ordem = (db.query(func.max(Aula.ordem)).filter(Aula.turma_id == turma_id).scalar() or 0) + 1
+            ordem = (
+                db.query(func.max(Aula.ordem)).filter(Aula.turma_id == turma_id).scalar() or 0
+            ) + 1
         else:
             duplicada = (
-                db.query(Aula)
-                .filter(Aula.turma_id == turma_id, Aula.ordem == ordem)
-                .first()
+                db.query(Aula).filter(Aula.turma_id == turma_id, Aula.ordem == ordem).first()
             )
             if duplicada:
                 raise ValueError("Já existe uma aula nesta posição (ordem).")

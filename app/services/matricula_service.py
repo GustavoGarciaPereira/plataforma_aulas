@@ -56,17 +56,11 @@ def matricular(db: Session, aluno_id: int, turma_id: int) -> Matricula:
 def dados_dashboard(db: Session, aluno_id: int) -> dict:
     """Dados do dashboard do aluno (RF06): turmas + progresso + últimas conclusões."""
     try:
-        matriculas = (
-            db.query(Matricula).filter(Matricula.aluno_id == aluno_id).all()
-        )
+        matriculas = db.query(Matricula).filter(Matricula.aluno_id == aluno_id).all()
         turmas = []
         for m in matriculas:
             total = db.query(Aula).filter(Aula.turma_id == m.turma_id).count()
-            concluidas = (
-                db.query(AulaConcluida)
-                .filter(AulaConcluida.matricula_id == m.id)
-                .count()
-            )
+            concluidas = db.query(AulaConcluida).filter(AulaConcluida.matricula_id == m.id).count()
             turmas.append(
                 {
                     "matricula_id": m.id,
@@ -91,6 +85,7 @@ def dados_dashboard(db: Session, aluno_id: int) -> dict:
 
 
 # ------------------------------------------------------------ RF05/RF06 ----
+
 
 def concluir_aula(db: Session, matricula_id: int, aula_id: int) -> AulaConcluida | None:
     """Registra conclusão de aula (RF05). Idempotente: None se já existia.
@@ -143,12 +138,7 @@ def listar_aulas_para_aluno(db: Session, turma_id: int, aluno_id: int) -> dict:
             raise ValueError("Você não está matriculado nesta turma.")
 
         turma = db.get(Turma, turma_id)
-        aulas = (
-            db.query(Aula)
-            .filter(Aula.turma_id == turma_id)
-            .order_by(Aula.ordem, Aula.id)
-            .all()
-        )
+        aulas = db.query(Aula).filter(Aula.turma_id == turma_id).order_by(Aula.ordem, Aula.id).all()
         concluidas = {
             c.aula_id
             for c in db.query(AulaConcluida)
@@ -185,9 +175,7 @@ def calcular_progresso(db: Session, turma_id: int, aluno_id: int) -> dict:
             raise ValueError("Você não está matriculado nesta turma.")
         total = db.query(Aula).filter(Aula.turma_id == turma_id).count()
         concluidas = (
-            db.query(AulaConcluida)
-            .filter(AulaConcluida.matricula_id == matricula.id)
-            .count()
+            db.query(AulaConcluida).filter(AulaConcluida.matricula_id == matricula.id).count()
         )
         return {
             "total": total,

@@ -97,7 +97,9 @@ def test_matricula_e_dashboard_com_progresso(client):
     r = client.get("/turmas-disponiveis")
     assert r.status_code == 200 and "Intensivo ENEM" in r.text
     token = extrair_csrf(r.text)
-    r = client.post(f"/turmas/{turma_id}/matricular", data={"csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/turmas/{turma_id}/matricular", data={"csrf_token": token}, follow_redirects=False
+    )
     assert r.headers["location"] == "/dashboard"
 
     r = client.get("/dashboard")
@@ -109,7 +111,9 @@ def test_matricula_e_dashboard_com_progresso(client):
     # matrícula idempotente: segundo POST não quebra
     r = client.get("/turmas-disponiveis")
     token = extrair_csrf(r.text)
-    r = client.post(f"/turmas/{turma_id}/matricular", data={"csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/turmas/{turma_id}/matricular", data={"csrf_token": token}, follow_redirects=False
+    )
     assert r.status_code == 303
 
     # turma inexistente -> flash de erro
@@ -124,7 +128,14 @@ def test_progresso_com_aulas_concluidas(client):
     """Dashboard mostra percentual > 0 quando há conclusões (dados diretos)."""
     turma_id = criar_turma_da_carla(client)
     with SessionLocal() as db:
-        db.add(Aula(turma_id=turma_id, titulo="Aula 1", youtube_url="https://youtu.be/dQw4w9WgXcQ", ordem=1))
+        db.add(
+            Aula(
+                turma_id=turma_id,
+                titulo="Aula 1",
+                youtube_url="https://youtu.be/dQw4w9WgXcQ",
+                ordem=1,
+            )
+        )
         db.commit()
 
     r = client.get("/auth/login")

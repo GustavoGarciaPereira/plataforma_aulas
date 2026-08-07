@@ -55,7 +55,7 @@ def video_id_from_url(url: str) -> str:
 
     if host not in _HOSTS_VIDEO:
         raise YouTubeURLError(
-            f"A URL \"{url}\" não é do YouTube (domínio: {host or 'desconhecido'})."
+            f'A URL "{url}" não é do YouTube (domínio: {host or "desconhecido"}).'
         )
 
     video_id: str | None = None
@@ -75,9 +75,7 @@ def video_id_from_url(url: str) -> str:
     if video_id and _VIDEO_ID_PATTERN.fullmatch(video_id):
         return video_id
 
-    raise YouTubeURLError(
-        f"Não foi possível extrair o ID do vídeo da URL: \"{url}\"."
-    )
+    raise YouTubeURLError(f'Não foi possível extrair o ID do vídeo da URL: "{url}".')
 
 
 def embed_url_from_url(url: str) -> str:

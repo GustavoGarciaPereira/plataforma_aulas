@@ -1,0 +1,14 @@
+# Ruff — linter e formatter do projeto (Python 3.12)
+# Uso: venv/bin/ruff check .  |  venv/bin/ruff format .
+target-version = "py312"
+line-length = 100
+
+[lint]
+# BLE001: `except Exception` é intencional na camada de services — converte
+# qualquer falha de banco em RuntimeError com rollback (contrato do projeto).
+ignore = ["BLE001"]
+
+[lint.flake8-bugbear]
+# B008: Depends()/Form()/Query() como default de parâmetro é o padrão
+# idiomático do FastAPI.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Form", "fastapi.Query"]

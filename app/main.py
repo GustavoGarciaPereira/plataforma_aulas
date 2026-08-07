@@ -27,10 +27,11 @@ async def redirecionar_com_flash(request: Request, exc: RedirecionarComFlash):
     flash(request, exc.categoria, exc.mensagem)
     return RedirectResponse(exc.destino, status_code=exc.status_code)
 
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
-    max_age=86400,      # 24h
+    max_age=86400,  # 24h
     same_site="lax",
     # https_only=True   # habilitar em produção (HTTPS); em dev HTTP quebraria o cookie
 )
@@ -42,10 +43,12 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="s
 
 # --- Routers do MVP (RF01–RF07) ---
 # TODO: descomentar conforme os arquivos forem criados em app/routers/.
-from .routers import aluno  # noqa: E402  # RF04/RF05/RF06 (dashboard, matrícula, turma)
-from .routers import auth  # noqa: E402  # RF01
-from .routers import professor  # noqa: E402  # RF02/RF03
-from .routers import utils  # noqa: E402  # RF07 (cronograma)
+from .routers import (
+    aluno,  # RF04/RF05/RF06 (dashboard, matrícula, turma)
+    auth,  # RF01
+    professor,  # RF02/RF03
+    utils,  # RF07 (cronograma)
+)
 
 app.include_router(auth.router)
 app.include_router(professor.router)

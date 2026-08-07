@@ -1,7 +1,5 @@
 """E2E RF02/RF03 — gestão de turmas e aulas pela professora (TestClient)."""
 
-import re
-
 from app.database import SessionLocal
 from app.models import Aula, Professor, Turma
 from app.security import hash_senha
@@ -17,7 +15,12 @@ def criar_turma(client, csrf, nome="Intensivo ENEM", **extra) -> int:
     token = extrair_csrf(r.text)
     r = client.post(
         "/professor/turmas/nova",
-        data={"nome": nome, "descricao": extra.get("descricao", ""), "tipo": extra.get("tipo", "intensivo"), "csrf_token": token},
+        data={
+            "nome": nome,
+            "descricao": extra.get("descricao", ""),
+            "tipo": extra.get("tipo", "intensivo"),
+            "csrf_token": token,
+        },
         follow_redirects=False,
     )
     assert (r.status_code, r.headers["location"]) == (303, "/professor/dashboard")
@@ -40,6 +43,7 @@ def criar_aula(client, turma_id, titulo="Aula 1", url=URL_YT_VALIDA, ordem="") -
 
 # ---------------------------------------------------------------- acesso ---
 
+
 def test_dashboard_redireciona_anonimo(client):
     r = client.get("/professor/dashboard", follow_redirects=False)
     assert (r.status_code, r.headers["location"]) == (302, "/auth/login")
@@ -49,18 +53,27 @@ def test_dashboard_bloqueia_aluno(client):
     # cadastro de aluno + login
     r = client.get("/auth/cadastro")
     token = extrair_csrf(r.text)
-    client.post("/auth/cadastro", data={
-        "nome": "João", "email": "joao@aluno.com", "senha": "abc123",
-        "confirmar_senha": "abc123", "csrf_token": token,
-    })
+    client.post(
+        "/auth/cadastro",
+        data={
+            "nome": "João",
+            "email": "joao@aluno.com",
+            "senha": "abc123",
+            "confirmar_senha": "abc123",
+            "csrf_token": token,
+        },
+    )
     r = client.get("/auth/login")
     token = extrair_csrf(r.text)
-    client.post("/auth/login", data={"email": "joao@aluno.com", "senha": "abc123", "csrf_token": token})
+    client.post(
+        "/auth/login", data={"email": "joao@aluno.com", "senha": "abc123", "csrf_token": token}
+    )
     r = client.get("/professor/dashboard", follow_redirects=False)
     assert (r.status_code, r.headers["location"]) == (302, "/dashboard")
 
 
 # ----------------------------------------------------------------- RF02 ---
+
 
 def test_form_turma_tem_select_tipo(client, login_professora):
     """Regressão: o select 'Tipo' precisa renderizar as 3 opções (RF02)."""
@@ -106,7 +119,12 @@ def test_editar_turma(client, login_professora):
     token = extrair_csrf(r.text)
     r = client.post(
         f"/professor/turmas/{turma_id}/editar",
-        data={"nome": "Regular FUVEST", "descricao": "Nova desc", "tipo": "regular", "csrf_token": token},
+        data={
+            "nome": "Regular FUVEST",
+            "descricao": "Nova desc",
+            "tipo": "regular",
+            "csrf_token": token,
+        },
         follow_redirects=False,
     )
     assert (r.status_code, r.headers["location"]) == (303, "/professor/dashboard")
@@ -121,7 +139,9 @@ def test_excluir_turma_cascata(client, login_professora):
     aula_id = criar_aula(client, turma_id)
     r = client.get("/professor/dashboard")
     token = extrair_csrf(r.text)
-    r = client.post(f"/professor/turmas/{turma_id}/excluir", data={"csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/professor/turmas/{turma_id}/excluir", data={"csrf_token": token}, follow_redirects=False
+    )
     assert (r.status_code, r.headers["location"]) == (303, "/professor/dashboard")
     with SessionLocal() as db:
         assert db.get(Turma, turma_id) is None
@@ -145,6 +165,7 @@ def test_turma_de_outro_professor_inacessivel(client, login_professora):
 
 # ----------------------------------------------------------------- RF03 ---
 
+
 def test_criar_aula_url_valida(client, login_professora):
     login_professora()
     turma_id = criar_turma(client, None)
@@ -152,7 +173,12 @@ def test_criar_aula_url_valida(client, login_professora):
     token = extrair_csrf(r.text)
     r = client.post(
         f"/professor/turmas/{turma_id}/aulas/nova",
-        data={"titulo": "Introdução à redação", "youtube_url": URL_YT_VALIDA, "ordem": "", "csrf_token": token},
+        data={
+            "titulo": "Introdução à redação",
+            "youtube_url": URL_YT_VALIDA,
+            "ordem": "",
+            "csrf_token": token,
+        },
         follow_redirects=False,
     )
     assert (r.status_code, r.headers["location"]) == (303, f"/professor/turmas/{turma_id}/aulas")
@@ -187,7 +213,10 @@ def test_ordem_automatica_sequencial(client, login_professora):
     criar_aula(client, turma_id, "B", ordem="")
     criar_aula(client, turma_id, "C", ordem="")
     with SessionLocal() as db:
-        ordens = [a.ordem for a in db.query(Aula).filter(Aula.turma_id == turma_id).order_by(Aula.ordem).all()]
+        ordens = [
+            a.ordem
+            for a in db.query(Aula).filter(Aula.turma_id == turma_id).order_by(Aula.ordem).all()
+        ]
         assert ordens == [1, 2, 3]
 
 
@@ -203,7 +232,10 @@ def test_ordem_duplicada_rejeitada(client, login_professora):
         follow_redirects=False,
     )
     assert r.headers["location"] == f"/professor/turmas/{turma_id}/aulas/nova"
-    assert "Já existe uma aula nesta posição" in client.get(f"/professor/turmas/{turma_id}/aulas/nova").text
+    assert (
+        "Já existe uma aula nesta posição"
+        in client.get(f"/professor/turmas/{turma_id}/aulas/nova").text
+    )
 
 
 def test_editar_aula(client, login_professora):
@@ -215,7 +247,12 @@ def test_editar_aula(client, login_professora):
     token = extrair_csrf(r.text)
     r = client.post(
         f"/professor/aulas/{aula_id}/editar",
-        data={"titulo": "Título Novo", "youtube_url": URL_YT_VALIDA, "ordem": "5", "csrf_token": token},
+        data={
+            "titulo": "Título Novo",
+            "youtube_url": URL_YT_VALIDA,
+            "ordem": "5",
+            "csrf_token": token,
+        },
         follow_redirects=False,
     )
     assert r.headers["location"] == f"/professor/turmas/{turma_id}/aulas"
@@ -234,7 +271,11 @@ def test_mover_aula(client, login_professora):
     # B sobe -> ordens [2, 1, 3]
     r = client.get(f"/professor/turmas/{turma_id}/aulas")
     token = extrair_csrf(r.text)
-    r = client.post(f"/professor/aulas/{id_b}/mover", data={"direcao": "cima", "csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/professor/aulas/{id_b}/mover",
+        data={"direcao": "cima", "csrf_token": token},
+        follow_redirects=False,
+    )
     assert r.status_code == 303
     with SessionLocal() as db:
         ordens = {a.id: a.ordem for a in db.query(Aula).filter(Aula.turma_id == turma_id).all()}
@@ -249,7 +290,11 @@ def test_mover_aula(client, login_professora):
 
     # A tenta subir (já é a primeira) -> sem erro
     token = extrair_csrf(client.get(f"/professor/turmas/{turma_id}/aulas").text)
-    r = client.post(f"/professor/aulas/{id_a}/mover", data={"direcao": "cima", "csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/professor/aulas/{id_a}/mover",
+        data={"direcao": "cima", "csrf_token": token},
+        follow_redirects=False,
+    )
     assert r.status_code == 303
 
 
@@ -259,7 +304,9 @@ def test_excluir_aula(client, login_professora):
     aula_id = criar_aula(client, turma_id, "Para Excluir")
     r = client.get(f"/professor/turmas/{turma_id}/aulas")
     token = extrair_csrf(r.text)
-    r = client.post(f"/professor/aulas/{aula_id}/excluir", data={"csrf_token": token}, follow_redirects=False)
+    r = client.post(
+        f"/professor/aulas/{aula_id}/excluir", data={"csrf_token": token}, follow_redirects=False
+    )
     assert r.headers["location"] == f"/professor/turmas/{turma_id}/aulas"
     with SessionLocal() as db:
         assert db.get(Aula, aula_id) is None

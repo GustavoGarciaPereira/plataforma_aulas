@@ -6,6 +6,7 @@ o PDF via WeasyPrint fica para worker (TODO, PRD seção 6).
 """
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
@@ -31,5 +32,9 @@ def cronograma(request: Request, turma_id: int, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request,
         "cronograma.html",
-        {"turma": turma, "aulas": aulas, "now": datetime.now()},
+        {
+            "turma": turma,
+            "aulas": aulas,
+            "now": datetime.now(ZoneInfo("America/Sao_Paulo")),
+        },
     )

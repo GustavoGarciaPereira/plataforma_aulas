@@ -19,6 +19,8 @@ venv/bin/pip install -r requirements.txt    # runtime
 venv/bin/pip install -r requirements-dev.txt  # pytest, httpx
 venv/bin/uvicorn app.main:app --reload      # servidor dev (porta 8000)
 venv/bin/python -m pytest tests/ -q         # suíte (49 testes)
+venv/bin/ruff check .                       # lint (config: ruff.toml)
+venv/bin/ruff format .                      # formatação (estilo Black)
 venv/bin/alembic upgrade head               # migrações
 venv/bin/python -m app.seed                 # seed da professora Carla (idempotente)
 ```
@@ -94,6 +96,7 @@ Migração Alembic `1a2b3c4d5e6f` (init). **Estado atual do `dev.db`** (set/2026
 - Routers finos (Form/flash/redirect), services com ValueError/RuntimeError, templates herdam `base.html` + Tailwind CDN.
 - Nome de função da rota = nome usado em `url_for(...)` nos templates (senão link morre como `#`).
 - Testes novos obrigatórios para qualquer mudança de rota/template (E2E) ou service (unit).
+- Ruff: `venv/bin/ruff check .` e `venv/bin/ruff format .` antes de commit (config em `ruff.toml`; B008 Depends/Form e BLE001 services são exceções intencionais).
 
 ## Next: Semanas 2-3 — Redação (RF08-10)
 

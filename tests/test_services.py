@@ -10,9 +10,7 @@ from app.database import SessionLocal
 from app.models import Aula, Turma
 from app.services.aula_service import (
     adicionar_aula,
-    buscar_aula_da_professora,
     editar_aula,
-    excluir_aula,
     mover_aula,
     reordenar_aulas,
 )
@@ -37,6 +35,7 @@ def db(client):
 
 # ---------------------------------------------------------- turma_service --
 
+
 def test_criar_turma_valida_e_commita(db):
     turma = criar_turma(db, 1, "  Intensivo ENEM  ", "desc", "intensivo")
     assert turma.nome == "Intensivo ENEM" and turma.professor_id == 1
@@ -60,14 +59,15 @@ def test_editar_turma_alheia(db):
 
 
 def test_excluir_turma_e_listar(db):
-    a = criar_turma(db, 1, "A", None, "regular")
-    b = criar_turma(db, 1, "B", None, "regular")
-    excluir_turma(db, a.id, 1)
+    criar_turma(db, 1, "A", None, "regular")
+    criar_turma(db, 1, "B", None, "regular")
+    excluir_turma(db, db.query(Turma).filter(Turma.nome == "A").one().id, 1)
     nomes = [t.nome for t in listar_turmas_por_professor(db, 1)]
     assert nomes == ["B"]  # ordenado por nome
 
 
 # ---------------------------------------------------------- aula_service ---
+
 
 def test_adicionar_aula_ordem_automatica(db):
     turma = criar_turma(db, 1, "Turma", None, "regular")
@@ -116,7 +116,8 @@ def test_mover_aula_swap_e_limite(db):
     a1 = adicionar_aula(db, turma.id, 1, "A", URL_OK, ordem=1)
     a2 = adicionar_aula(db, turma.id, 1, "B", URL_OK, ordem=2)
     assert mover_aula(db, a2.id, 1, "cima") is True
-    db.refresh(a1); db.refresh(a2)
+    db.refresh(a1)
+    db.refresh(a2)
     assert (a1.ordem, a2.ordem) == (2, 1)  # trocaram de posição
     # limites (após o swap: a2 é a primeira, a1 é a última)
     assert mover_aula(db, a2.id, 1, "cima") is False
