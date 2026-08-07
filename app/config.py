@@ -27,5 +27,9 @@ class Settings(BaseSettings):
     # NUNCA use o valor padrão em produção: gere com `python -c "import secrets; print(secrets.token_hex(32))"`.
     secret_key: str = "dev-only-troque-no-env"
 
+    # Backend de armazenamento de uploads: 'local' (disco) ou 'r2' (Cloudflare R2,
+    # API compatível com S3 — ainda não implementado; ver app/storage/r2.py).
+    storage_backend: str = "local"
+
 
 settings = Settings()

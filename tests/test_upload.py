@@ -2,7 +2,8 @@
 
 from app.database import SessionLocal
 from app.models import Aula, Correcao, Matricula, Redacao, Turma
-from app.utils.upload import MAX_TAMANHO, RAIZ_UPLOADS
+from app.storage.local import RAIZ_UPLOADS
+from app.utils.upload_validator import MAX_TAMANHO
 from tests.conftest import extrair_csrf
 
 URL_YT_VALIDA = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"

@@ -9,9 +9,10 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from ..models import Aula, Correcao, Matricula, Redacao, Turma
-from ..utils.upload import deletar_arquivo, salvar_upload
+from ..storage.base import StorageBackend
 from .aula_service import buscar_aula_da_professora
 from .matricula_service import ja_matriculado
+from .upload_service import substituir_upload
 
 COMPETENCIAS = ("c1", "c2", "c3", "c4", "c5")
 NOTA_MIN, NOTA_MAX = 0, 200
@@ -39,11 +40,13 @@ def criar_proposta(
     texto_apoio: str | None,
     comando: str | None,
     arquivo: UploadFile | None = None,
+    storage: StorageBackend | None = None,
 ) -> Aula:
     """Adiciona/atualiza a proposta de redação de uma aula (RF08). Verifica propriedade.
 
-    `arquivo` opcional: salva em `uploads/propostas/` e substitui o anterior. A
-    proposta da aula continua editável mesmo com redações já corrigidas.
+    `arquivo` opcional: salva via storage (default: get_storage()) em
+    `uploads/propostas/` e substitui o anterior. A proposta da aula continua
+    editável mesmo com redações já corrigidas.
     """
     try:
         aula = buscar_aula_da_professora(db, aula_id, professor_id)
@@ -51,9 +54,9 @@ def criar_proposta(
         aula.texto_apoio = (texto_apoio or "").strip() or None
         aula.comando = (comando or "").strip() or None
         if arquivo is not None:
-            novo = salvar_upload(arquivo, "propostas")
-            deletar_arquivo(aula.proposta_arquivo)
-            aula.proposta_arquivo = novo
+            aula.proposta_arquivo = substituir_upload(
+                storage, arquivo, "propostas", aula.proposta_arquivo
+            )
         db.commit()
         db.refresh(aula)
         return aula
@@ -157,11 +160,12 @@ def submeter_redacao(
     aula_id: int,
     texto: str,
     arquivo: UploadFile | None = None,
+    storage: StorageBackend | None = None,
 ) -> Redacao:
     """Cria ou atualiza a redação do aluno (RF08). Anti-trapaça: aula da turma da matrícula.
 
     - 1ª submissão exige texto OU arquivo;
-    - antes da correção, o reupload substitui texto e/ou arquivo;
+    - antes da correção, o reupload substitui texto e/ou arquivo (via storage);
     - após corrigida, nada pode ser alterado.
     """
     try:
@@ -184,9 +188,9 @@ def submeter_redacao(
             if existente.status == "corrigida":
                 raise ValueError("Esta redação já foi corrigida e não pode ser alterada.")
             if arquivo is not None:
-                novo = salvar_upload(arquivo, "redacoes")
-                deletar_arquivo(existente.arquivo_path)
-                existente.arquivo_path = novo
+                existente.arquivo_path = substituir_upload(
+                    storage, arquivo, "redacoes", existente.arquivo_path
+                )
             if texto:
                 existente.texto = texto
             if not (existente.texto.strip() or existente.arquivo_path):
@@ -199,7 +203,7 @@ def submeter_redacao(
             raise ValueError("Informe o texto da redação ou anexe um arquivo.")
         redacao = Redacao(matricula_id=matricula_id, aula_id=aula_id, texto=texto)
         if arquivo is not None:
-            redacao.arquivo_path = salvar_upload(arquivo, "redacoes")
+            redacao.arquivo_path = substituir_upload(storage, arquivo, "redacoes", None)
         db.add(redacao)
         db.commit()
         db.refresh(redacao)

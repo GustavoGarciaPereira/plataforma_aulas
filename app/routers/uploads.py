@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..services.redacao_service import permitir_download_upload
-from ..utils.upload import caminho_absoluto
+from ..storage.factory import get_storage
 
 router = APIRouter(tags=["uploads"], dependencies=[Depends(get_current_user)])
 
@@ -24,7 +24,7 @@ router = APIRouter(tags=["uploads"], dependencies=[Depends(get_current_user)])
 def download_upload(request: Request, caminho: str, db: Session = Depends(get_db)):
     """Serve o arquivo se o usuário tem permissão; 404 caso contrário."""
     try:
-        arquivo = caminho_absoluto(caminho)
+        arquivo = get_storage().obter_path(caminho)
     except ValueError:
         return Response(status_code=404)  # path traversal
     if not arquivo.is_file():
