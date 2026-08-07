@@ -4,7 +4,7 @@ Router fino: lógica em app/services/matricula_service.py; aqui ficam
 respostas, flash e redirects. Todas as rotas exigem login (get_current_user).
 """
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -141,14 +141,15 @@ def redacao_submeter(
     request: Request,
     turma_id: int,
     aula_id: int,
-    texto: str = Form(...),
+    texto: str = Form(""),
+    arquivo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
-    """Submete a redação do aluno para a aula (RF08). Anti-trapaça no service."""
+    """Cria ou atualiza a redação do aluno (texto e/ou arquivo; reupload até corrigir)."""
     destino_erro = f"/turmas/{turma_id}/aulas/{aula_id}/redacao"
     try:
         dados = obter_dados_redacao_do_aluno(db, request.session["user_id"], turma_id, aula_id)
-        submeter_redacao(db, dados["matricula"].id, aula_id, texto)
+        submeter_redacao(db, dados["matricula"].id, aula_id, texto, arquivo)
         flash(request, "success", "Redação enviada com sucesso!")
         return RedirectResponse(destino_erro, status_code=303)
     except (ValueError, RuntimeError) as exc:

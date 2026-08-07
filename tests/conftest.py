@@ -11,6 +11,7 @@ from pathlib import Path
 
 _tmp_db = Path(tempfile.mkdtemp()) / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_db}"
+os.environ["UPLOADS_DIR"] = str(Path(tempfile.mkdtemp()) / "uploads")
 
 import pytest
 from starlette.testclient import TestClient

@@ -9,6 +9,6 @@ line-length = 100
 ignore = ["BLE001"]
 
 [lint.flake8-bugbear]
-# B008: Depends()/Form()/Query() como default de parâmetro é o padrão
+# B008: Depends()/Form()/File()/Query() como default de parâmetro é o padrão
 # idiomático do FastAPI.
-extend-immutable-calls = ["fastapi.Depends", "fastapi.Form", "fastapi.Query"]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Form", "fastapi.File", "fastapi.Query"]

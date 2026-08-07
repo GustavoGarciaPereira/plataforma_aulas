@@ -7,7 +7,7 @@ Erros: ValueError -> flash com a mensagem amigável; RuntimeError -> flash
 genérico. Todos os POSTs passam por verificar_csrf.
 """
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -289,15 +289,16 @@ def proposta_salvar(
     tema: str = Form(""),
     texto_apoio: str = Form(""),
     comando: str = Form(""),
+    arquivo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
-    """Salva (cria/atualiza) a proposta de redação da aula."""
+    """Salva (cria/atualiza) a proposta de redação da aula, com arquivo opcional."""
     destino_erro = f"/professor/turmas/{turma_id}/aulas/{aula_id}/proposta"
     try:
         aula = buscar_aula_da_professora(db, aula_id, request.session["user_id"])
         if aula.turma_id != turma_id:
             raise ValueError("Aula não encontrada.")
-        criar_proposta(db, aula_id, request.session["user_id"], tema, texto_apoio, comando)
+        criar_proposta(db, aula_id, request.session["user_id"], tema, texto_apoio, comando, arquivo)
         flash(request, "success", "Proposta salva!")
         return RedirectResponse(f"/professor/turmas/{turma_id}/aulas", status_code=303)
     except (ValueError, RuntimeError) as exc:

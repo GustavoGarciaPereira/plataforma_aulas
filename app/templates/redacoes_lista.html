@@ -32,6 +32,9 @@
             <p class="text-xs text-slate-400 mt-1">Entregue em {{ r.data_entrega.strftime('%d/%m/%Y') }}</p>
           </div>
           <div class="flex items-center gap-3 shrink-0">
+            {% if r.arquivo_path %}
+              <span title="Tem arquivo anexado" class="text-sm">📎</span>
+            {% endif %}
             {% if r.status == 'entregue' %}
               <span class="text-xs font-medium px-2 py-1 rounded bg-amber-100 text-amber-700">Pendente</span>
               <a href="{{ url_for('redacao_corrigir', redacao_id=r.id) }}"

@@ -5,10 +5,13 @@ Contrato de erros igual aos demais services:
   - RuntimeError: falha de banco (rollback aplicado aqui).
 """
 
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from ..models import Aula, Correcao, Matricula, Redacao, Turma
+from ..utils.upload import deletar_arquivo, salvar_upload
 from .aula_service import buscar_aula_da_professora
+from .matricula_service import ja_matriculado
 
 COMPETENCIAS = ("c1", "c2", "c3", "c4", "c5")
 NOTA_MIN, NOTA_MAX = 0, 200
@@ -35,13 +38,22 @@ def criar_proposta(
     tema: str | None,
     texto_apoio: str | None,
     comando: str | None,
+    arquivo: UploadFile | None = None,
 ) -> Aula:
-    """Adiciona/atualiza a proposta de redação de uma aula (RF08). Verifica propriedade."""
+    """Adiciona/atualiza a proposta de redação de uma aula (RF08). Verifica propriedade.
+
+    `arquivo` opcional: salva em `uploads/propostas/` e substitui o anterior. A
+    proposta da aula continua editável mesmo com redações já corrigidas.
+    """
     try:
         aula = buscar_aula_da_professora(db, aula_id, professor_id)
         aula.tema = (tema or "").strip() or None
         aula.texto_apoio = (texto_apoio or "").strip() or None
         aula.comando = (comando or "").strip() or None
+        if arquivo is not None:
+            novo = salvar_upload(arquivo, "propostas")
+            deletar_arquivo(aula.proposta_arquivo)
+            aula.proposta_arquivo = novo
         db.commit()
         db.refresh(aula)
         return aula
@@ -139,10 +151,18 @@ def corrigir_redacao(
         raise RuntimeError("Erro ao salvar correção.") from exc
 
 
-def submeter_redacao(db: Session, matricula_id: int, aula_id: int, texto: str) -> Redacao:
-    """Submete a redação do aluno (RF08). Anti-trapaça: a aula precisa pertencer à turma.
+def submeter_redacao(
+    db: Session,
+    matricula_id: int,
+    aula_id: int,
+    texto: str,
+    arquivo: UploadFile | None = None,
+) -> Redacao:
+    """Cria ou atualiza a redação do aluno (RF08). Anti-trapaça: aula da turma da matrícula.
 
-    Rejeita duplicidade (mesma matrícula + aula) e texto vazio.
+    - 1ª submissão exige texto OU arquivo;
+    - antes da correção, o reupload substitui texto e/ou arquivo;
+    - após corrigida, nada pode ser alterado.
     """
     try:
         matricula = db.get(Matricula, matricula_id)
@@ -155,17 +175,31 @@ def submeter_redacao(db: Session, matricula_id: int, aula_id: int, texto: str) -
             raise ValueError("Aula não pertence à sua turma.")
 
         texto = (texto or "").strip()
-        if not texto:
-            raise ValueError("O texto da redação não pode estar vazio.")
         existente = (
             db.query(Redacao)
             .filter(Redacao.matricula_id == matricula_id, Redacao.aula_id == aula_id)
             .first()
         )
         if existente:
-            raise ValueError("Você já enviou sua redação para esta aula.")
+            if existente.status == "corrigida":
+                raise ValueError("Esta redação já foi corrigida e não pode ser alterada.")
+            if arquivo is not None:
+                novo = salvar_upload(arquivo, "redacoes")
+                deletar_arquivo(existente.arquivo_path)
+                existente.arquivo_path = novo
+            if texto:
+                existente.texto = texto
+            if not (existente.texto.strip() or existente.arquivo_path):
+                raise ValueError("Informe o texto da redação ou anexe um arquivo.")
+            db.commit()
+            db.refresh(existente)
+            return existente
 
+        if not texto and arquivo is None:
+            raise ValueError("Informe o texto da redação ou anexe um arquivo.")
         redacao = Redacao(matricula_id=matricula_id, aula_id=aula_id, texto=texto)
+        if arquivo is not None:
+            redacao.arquivo_path = salvar_upload(arquivo, "redacoes")
         db.add(redacao)
         db.commit()
         db.refresh(redacao)
@@ -238,3 +272,32 @@ def obter_dados_redacao_do_aluno(db: Session, aluno_id: int, turma_id: int, aula
     except Exception as exc:
         db.rollback()
         raise RuntimeError("Erro ao carregar a redação.") from exc
+
+
+def permitir_download_upload(db: Session, usuario_id: int, role: str | None, caminho: str) -> bool:
+    """Autoriza download de um arquivo de upload conforme o papel:
+
+    - `propostas/`: professor dono da turma OU aluno matriculado nela;
+    - `redacoes/`: professor dono da turma OU aluno dono da redação.
+
+    Falha de banco nega o acesso (fail-closed) — a rota responde 404.
+    """
+    try:
+        if caminho.startswith("propostas/"):
+            aula = db.query(Aula).filter(Aula.proposta_arquivo == caminho).first()
+            if aula is None:
+                return False
+            if role == "professor":
+                return aula.turma.professor_id == usuario_id
+            return ja_matriculado(db, usuario_id, aula.turma_id)
+        if caminho.startswith("redacoes/"):
+            redacao = db.query(Redacao).filter(Redacao.arquivo_path == caminho).first()
+            if redacao is None:
+                return False
+            if role == "professor":
+                return redacao.aula.turma.professor_id == usuario_id
+            return redacao.matricula.aluno_id == usuario_id
+        return False
+    except Exception:
+        db.rollback()
+        return False

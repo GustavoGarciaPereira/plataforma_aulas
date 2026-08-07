@@ -32,6 +32,37 @@
       {{ redacao.texto }}
     </div>
 
+    {% if redacao.arquivo_path %}
+      {% if redacao.arquivo_path.endswith(('.jpg', '.png')) %}
+        <img src="/uploads/{{ redacao.arquivo_path }}" alt="Redação anexada"
+             class="mt-3 max-w-full rounded-lg border border-slate-200">
+      {% else %}
+        <p class="text-sm mt-2">
+          📎 <a href="/uploads/{{ redacao.arquivo_path }}" target="_blank" class="text-indigo-600 hover:underline">Arquivo anexado (abrir)</a>
+        </p>
+      {% endif %}
+    {% endif %}
+
+    {% if redacao.status != 'corrigida' %}
+      <hr class="my-4 border-slate-200">
+
+      <h2 class="font-semibold text-sm text-slate-500 mb-2">Atualizar redação (até a correção)</h2>
+      <form method="post" enctype="multipart/form-data"
+            action="{{ url_for('redacao_submeter', turma_id=aula.turma_id, aula_id=aula.id) }}"
+            class="space-y-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <textarea id="texto" name="texto" rows="20"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ redacao.texto }}</textarea>
+        <input type="file" id="arquivo" name="arquivo" accept=".pdf,.jpg,.jpeg,.png"
+               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <p class="text-xs text-slate-400">PDF, JPG ou PNG — até 10MB. Enviar um novo substitui o anterior.</p>
+        <button type="submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition">
+          Atualizar redação
+        </button>
+      </form>
+    {% endif %}
+
     {% if correcao %}
       <hr class="my-4 border-slate-200">
 

@@ -303,7 +303,8 @@ def test_aluno_submete_redacao_e_ve_confirmacao(client):
         assert redacao.texto == "Minha dissertação sobre educação."
 
 
-def test_aluno_nao_submete_duplicada(client):
+def test_aluno_atualiza_redacao_antes_da_correcao(client):
+    """Reupload: antes da correção o aluno substitui o texto; depois, bloqueia."""
     turma_id, aula_id, _ = _cenario_com_proposta(client)
     r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
     token = extrair_csrf(r.text)
@@ -319,12 +320,35 @@ def test_aluno_nao_submete_duplicada(client):
         follow_redirects=False,
     )
     assert r.headers["location"] == f"/turmas/{turma_id}/aulas/{aula_id}/redacao"
-    assert (
-        "Você já enviou sua redação"
-        in client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao").text
-    )
     with SessionLocal() as db:
-        assert db.query(Redacao).count() == 1
+        assert db.query(Redacao).one().texto == "Segunda versão."
+
+    # após corrigida, nenhuma alteração é aceita
+    with SessionLocal() as db:
+        redacao = db.query(Redacao).one()
+        redacao.status = "corrigida"
+        db.add(
+            Correcao(
+                redacao_id=redacao.id,
+                nota_c1=100,
+                nota_c2=100,
+                nota_c3=100,
+                nota_c4=100,
+                nota_c5=100,
+            )
+        )
+        db.commit()
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    token = extrair_csrf(r.text)
+    r = client.post(
+        f"/turmas/{turma_id}/aulas/{aula_id}/redacao",
+        data={"texto": "Terceira versão.", "csrf_token": token},
+        follow_redirects=False,
+    )
+    assert r.headers["location"] == f"/turmas/{turma_id}/aulas/{aula_id}/redacao"
+    assert "já foi corrigida" in client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao").text
+    with SessionLocal() as db:
+        assert db.query(Redacao).one().texto == "Segunda versão."
 
 
 def test_aluno_ve_historico(client):

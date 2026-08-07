@@ -32,3 +32,11 @@ htmlcov/
 *.db
 *.sqlite3
 *.log
+reasonix.toml
+
+# Uploads locais (arquivos de proposta e redação) — mantém só os .gitkeep
+uploads/*
+!uploads/.gitkeep
+uploads/**/*
+!uploads/**/
+!uploads/**/.gitkeep

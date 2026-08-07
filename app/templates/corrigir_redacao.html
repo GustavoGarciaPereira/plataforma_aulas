@@ -27,6 +27,16 @@
     <div class="bg-slate-50 rounded-lg border border-slate-200 p-4 text-sm whitespace-pre-line">
       {{ redacao.texto }}
     </div>
+    {% if redacao.arquivo_path %}
+      <p class="text-sm mt-2">
+        📎 <a href="/uploads/{{ redacao.arquivo_path }}" target="_blank" class="text-indigo-600 hover:underline">Arquivo da redação (abrir)</a>
+      </p>
+    {% endif %}
+    {% if redacao.aula.proposta_arquivo %}
+      <p class="text-sm mt-1">
+        📎 <a href="/uploads/{{ redacao.aula.proposta_arquivo }}" target="_blank" class="text-indigo-600 hover:underline">Proposta em PDF (abrir)</a>
+      </p>
+    {% endif %}
   </div>
 
   <form method="post"

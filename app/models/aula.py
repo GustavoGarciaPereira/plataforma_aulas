@@ -35,6 +35,8 @@ class Aula(Base):
     tema: Mapped[str | None] = mapped_column(String(200), nullable=True)
     texto_apoio: Mapped[str | None] = mapped_column(Text, nullable=True)
     comando: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Caminho relativo do arquivo da proposta (uploads/propostas/...), opcional
+    proposta_arquivo: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     turma: Mapped["Turma"] = relationship(back_populates="aulas")
     concluidas: Mapped[list["AulaConcluida"]] = relationship(

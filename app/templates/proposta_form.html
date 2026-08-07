@@ -9,7 +9,7 @@
   <h1 class="text-2xl font-bold mt-1 mb-1">Proposta de Redação</h1>
   <p class="text-sm text-slate-500 mb-6">{{ aula.titulo }}</p>
 
-  <form method="post"
+  <form method="post" enctype="multipart/form-data"
         action="{{ url_for('proposta_salvar', turma_id=turma.id, aula_id=aula.id) }}"
         class="space-y-4">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -33,6 +33,19 @@
       <textarea id="comando" name="comando" rows="3"
                 placeholder="Ex.: Disserte sobre o tema em até 30 linhas."
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ aula.comando or '' }}</textarea>
+    </div>
+
+    <div>
+      <label for="arquivo" class="block text-sm font-medium text-slate-700 mb-1">Arquivo da proposta (opcional)</label>
+      <input type="file" id="arquivo" name="arquivo" accept=".pdf,.jpg,.jpeg,.png"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <p class="text-xs text-slate-400 mt-1">PDF, JPG ou PNG — até 10MB. Enviar um novo substitui o anterior.</p>
+      {% if aula.proposta_arquivo %}
+        <p class="text-xs text-slate-600 mt-1">
+          📎 Arquivo atual:
+          <a href="/uploads/{{ aula.proposta_arquivo }}" target="_blank" class="text-indigo-600 hover:underline">{{ aula.proposta_arquivo.split('/')[-1] }}</a>
+        </p>
+      {% endif %}
     </div>
 
     <button type="submit"

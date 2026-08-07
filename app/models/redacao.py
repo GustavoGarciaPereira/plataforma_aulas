@@ -31,6 +31,8 @@ class Redacao(Base):
         ForeignKey("aulas.id", ondelete="CASCADE"), nullable=False, index=True
     )
     texto: Mapped[str] = mapped_column(Text, nullable=False)
+    # Caminho relativo do arquivo enviado (uploads/redacoes/...), opcional
+    arquivo_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # 'entregue' ou 'corrigida' (RF08/RF09)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="entregue")
     data_entrega: Mapped[datetime] = mapped_column(

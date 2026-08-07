@@ -47,12 +47,14 @@ from .routers import (
     aluno,  # RF04/RF05/RF06 (dashboard, matrícula, turma)
     auth,  # RF01
     professor,  # RF02/RF03
+    uploads,  # download de arquivos de proposta/redação (protegido)
     utils,  # RF07 (cronograma)
 )
 
 app.include_router(auth.router)
 app.include_router(professor.router)
 app.include_router(aluno.router)
+app.include_router(uploads.router)
 app.include_router(utils.router)
 # from .routers import turmas
 
