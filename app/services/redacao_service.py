@@ -191,3 +191,32 @@ def obter_redacao_com_correcao(db: Session, redacao_id: int, aluno_id: int) -> R
     except Exception as exc:
         db.rollback()
         raise RuntimeError("Erro ao buscar redação.") from exc
+
+
+def obter_dados_redacao_do_aluno(db: Session, aluno_id: int, turma_id: int, aula_id: int) -> dict:
+    """Aula (com proposta) + redação já enviada, validando matrícula e propriedade.
+
+    Devolve {"matricula": Matricula, "aula": Aula, "redacao": Redacao | None}.
+    """
+    try:
+        matricula = (
+            db.query(Matricula)
+            .filter(Matricula.aluno_id == aluno_id, Matricula.turma_id == turma_id)
+            .first()
+        )
+        if matricula is None:
+            raise ValueError("Você não está matriculado nesta turma.")
+        aula = db.get(Aula, aula_id)
+        if aula is None or aula.turma_id != turma_id:
+            raise ValueError("Aula não encontrada.")
+        redacao = (
+            db.query(Redacao)
+            .filter(Redacao.matricula_id == matricula.id, Redacao.aula_id == aula_id)
+            .first()
+        )
+        return {"matricula": matricula, "aula": aula, "redacao": redacao}
+    except ValueError:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise RuntimeError("Erro ao carregar a redação.") from exc

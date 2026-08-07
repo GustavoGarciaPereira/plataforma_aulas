@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Redação — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto mt-6">
+  <a href="{{ url_for('historico_redacoes') }}" class="text-sm text-slate-400 hover:underline">
+    ← Voltar para histórico
+  </a>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-4">
+    <h1 class="text-2xl font-bold">Redação — {{ redacao.aula.tema or redacao.aula.titulo }}</h1>
+    <p class="text-sm text-slate-500 mt-1">{{ redacao.aula.turma.nome }} · {{ redacao.aula.titulo }}</p>
+
+    <hr class="my-4 border-slate-200">
+
+    <h2 class="font-semibold text-sm text-slate-500 mb-2">Seu texto</h2>
+    <div class="bg-slate-50 rounded-lg border border-slate-200 p-4 text-sm whitespace-pre-line">
+      {{ redacao.texto }}
+    </div>
+
+    {% if redacao.correcao %}
+      {% set c = redacao.correcao %}
+      <hr class="my-4 border-slate-200">
+
+      <h2 class="font-semibold text-sm text-slate-500 mb-3">Correção</h2>
+      <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
+        <thead>
+          <tr class="bg-slate-50 text-slate-600">
+            {% for comp in ['c1', 'c2', 'c3', 'c4', 'c5', 'total'] %}
+              <th class="border border-slate-200 px-3 py-2 text-left">{{ comp.upper() if comp != 'total' else 'Total' }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {% for comp in ['c1', 'c2', 'c3', 'c4', 'c5'] %}
+              <td class="border border-slate-200 px-3 py-2">{{ c['nota_' + comp] }}</td>
+            {% endfor %}
+            <td class="border border-slate-200 px-3 py-2 font-bold">
+              {{ c.nota_c1 + c.nota_c2 + c.nota_c3 + c.nota_c4 + c.nota_c5 }}/1000
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {% if c.comentario_geral %}
+        <p class="text-sm mt-3 text-slate-700"><strong>Comentário geral:</strong> {{ c.comentario_geral }}</p>
+      {% endif %}
+    {% else %}
+      <p class="text-sm text-slate-500 mt-4">Esta redação ainda não foi corrigida.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

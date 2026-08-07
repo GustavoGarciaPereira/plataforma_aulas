@@ -1,7 +1,7 @@
 """E2E RF08/RF09 — proposta de redação e correção pela professora (TestClient)."""
 
 from app.database import SessionLocal
-from app.models import Aula, Matricula, Redacao, Turma
+from app.models import Aula, Correcao, Matricula, Redacao, Turma
 from tests.conftest import extrair_csrf
 
 URL_YT_VALIDA = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -222,3 +222,174 @@ def test_nota_invalida_nao_salva(client):
     assert "deve ser um número" in client.get(f"/professor/redacoes/{redacao_id}/corrigir").text
     with SessionLocal() as db:
         assert db.get(Redacao, redacao_id).status == "entregue"
+
+
+# --------------------------------------------------------- RF08 (aluno) ---
+
+
+def _cenario_com_proposta(client) -> tuple[int, int, int]:
+    """Turma + aula com proposta de redação + aluno matriculado (e logado)."""
+    turma_id, aula_id = criar_turma_e_aula(client)
+    matricula_id = matricular_aluno(client, turma_id)
+    with SessionLocal() as db:
+        aula = db.get(Aula, aula_id)
+        aula.tema = "Os desafios da educação"
+        aula.texto_apoio = "Texto motivador."
+        aula.comando = "Disserte sobre o tema em até 30 linhas."
+        db.commit()
+    return turma_id, aula_id, matricula_id
+
+
+def test_aluno_ve_formulario_de_submissao(client):
+    turma_id, aula_id, _ = _cenario_com_proposta(client)
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    assert r.status_code == 200
+    assert "Enviar Redação" in r.text
+    assert "Os desafios da educação" in r.text
+    assert "Disserte sobre o tema em até 30 linhas." in r.text
+    assert 'name="texto"' in r.text and 'name="csrf_token"' in r.text
+
+
+def test_aluno_submete_redacao_e_ve_confirmacao(client):
+    turma_id, aula_id, _ = _cenario_com_proposta(client)
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    token = extrair_csrf(r.text)
+    r = client.post(
+        f"/turmas/{turma_id}/aulas/{aula_id}/redacao",
+        data={"texto": "Minha dissertação sobre educação.", "csrf_token": token},
+        follow_redirects=False,
+    )
+    assert r.headers["location"] == f"/turmas/{turma_id}/aulas/{aula_id}/redacao"
+    # página agora mostra a redação enviada (badge Entregue)
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    assert "Minha Redação" in r.text and "Entregue" in r.text
+    assert "Minha dissertação sobre educação." in r.text
+    with SessionLocal() as db:
+        redacao = db.query(Redacao).one()
+        assert redacao.status == "entregue"
+        assert redacao.texto == "Minha dissertação sobre educação."
+
+
+def test_aluno_nao_submete_duplicada(client):
+    turma_id, aula_id, _ = _cenario_com_proposta(client)
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    token = extrair_csrf(r.text)
+    client.post(
+        f"/turmas/{turma_id}/aulas/{aula_id}/redacao",
+        data={"texto": "Primeira versão.", "csrf_token": token},
+    )
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    token = extrair_csrf(r.text)
+    r = client.post(
+        f"/turmas/{turma_id}/aulas/{aula_id}/redacao",
+        data={"texto": "Segunda versão.", "csrf_token": token},
+        follow_redirects=False,
+    )
+    assert r.headers["location"] == f"/turmas/{turma_id}/aulas/{aula_id}/redacao"
+    assert (
+        "Você já enviou sua redação"
+        in client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao").text
+    )
+    with SessionLocal() as db:
+        assert db.query(Redacao).count() == 1
+
+
+def test_aluno_ve_historico(client):
+    turma_id, aula_id, _ = _cenario_com_proposta(client)
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    token = extrair_csrf(r.text)
+    client.post(
+        f"/turmas/{turma_id}/aulas/{aula_id}/redacao",
+        data={"texto": "Redação do histórico.", "csrf_token": token},
+    )
+    r = client.get("/redacoes")
+    assert r.status_code == 200
+    assert "Minhas Redações" in r.text
+    assert "Os desafios da educação" in r.text
+    assert "Entregue" in r.text
+
+
+def test_aluno_ve_correcao(client):
+    turma_id, aula_id, matricula_id = _cenario_com_proposta(client)
+    redacao_id = submeter_redacao(matricula_id, aula_id, "Texto para correção.")
+    with SessionLocal() as db:
+        redacao = db.get(Redacao, redacao_id)
+        redacao.status = "corrigida"
+        db.add(
+            Correcao(
+                redacao_id=redacao_id,
+                nota_c1=200,
+                nota_c2=180,
+                nota_c3=160,
+                nota_c4=140,
+                nota_c5=120,
+                comentario_geral="Excelente argumentação!",
+            )
+        )
+        db.commit()
+
+    r = client.get(f"/redacoes/{redacao_id}")
+    assert r.status_code == 200
+    assert "Os desafios da educação" in r.text
+    assert "Texto para correção." in r.text
+    assert "Excelente argumentação!" in r.text
+    assert "800/1000" in r.text  # 200+180+160+140+120
+
+    # página da redação na turma também mostra a correção
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao")
+    assert "Corrigida" in r.text and "800/1000" in r.text
+
+
+def test_aluno_nao_ve_correcao_de_outro_aluno(client):
+    _, aula_id, matricula_id = _cenario_com_proposta(client)
+    redacao_id = submeter_redacao(matricula_id, aula_id, "Redação da Ana.")
+    with SessionLocal() as db:
+        redacao = db.get(Redacao, redacao_id)
+        redacao.status = "corrigida"
+        db.add(
+            Correcao(
+                redacao_id=redacao_id,
+                nota_c1=100,
+                nota_c2=100,
+                nota_c3=100,
+                nota_c4=100,
+                nota_c5=100,
+            )
+        )
+        db.commit()
+
+    # outro aluno (Bia) tenta acessar a correção da Ana
+    r = client.get("/auth/login")
+    token = extrair_csrf(r.text)
+    client.post("/auth/logout", data={"csrf_token": token})
+    cadastrar_e_logar_aluno(client, email="bia@teste.com")
+    r = client.get(f"/redacoes/{redacao_id}", follow_redirects=False)
+    assert r.headers["location"] == "/redacoes"
+    assert "Redação não encontrada." in client.get("/redacoes").text
+
+
+def test_aluno_sem_matricula_redirecionado(client):
+    turma_id, aula_id = criar_turma_e_aula(client)
+    # aluno cadastrado/logado mas NÃO matriculado na turma
+    r = client.get("/auth/login")
+    token = extrair_csrf(r.text)
+    client.post("/auth/logout", data={"csrf_token": token})
+    cadastrar_e_logar_aluno(client, email="cida@teste.com")
+
+    r = client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao", follow_redirects=False)
+    assert r.headers["location"] == "/turmas-disponiveis"
+    assert "Você não está matriculado nesta turma." in client.get("/turmas-disponiveis").text
+
+    # POST também é bloqueado
+    r = client.get("/turmas-disponiveis")
+    token = extrair_csrf(r.text)
+    r = client.post(
+        f"/turmas/{turma_id}/aulas/{aula_id}/redacao",
+        data={"texto": "x", "csrf_token": token},
+        follow_redirects=False,
+    )
+    assert r.headers["location"] == f"/turmas/{turma_id}/aulas/{aula_id}/redacao"
+    assert (
+        "Você não está matriculado nesta turma."
+        in client.get(f"/turmas/{turma_id}/aulas/{aula_id}/redacao").text
+    )

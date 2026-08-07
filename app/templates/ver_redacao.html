@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Minha Redação — Plataforma de Redação{% endblock %}
+
+{% block content %}
+{% set correcao = redacao.correcao %}
+<div class="max-w-3xl mx-auto mt-6">
+  <a href="{{ url_for('turma_aluno', turma_id=aula.turma_id) }}" class="text-sm text-slate-400 hover:underline">
+    ← Voltar para a turma
+  </a>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-4">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold">Minha Redação</h1>
+        <p class="text-sm text-slate-500 mt-1">{{ aula.titulo }}</p>
+      </div>
+      {% if redacao.status == 'corrigida' %}
+        <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Corrigida</span>
+      {% else %}
+        <span class="bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Entregue</span>
+      {% endif %}
+    </div>
+
+    {% if aula.tema %}
+      <p class="text-sm text-slate-700 mt-3"><strong>Tema:</strong> {{ aula.tema }}</p>
+    {% endif %}
+
+    <hr class="my-4 border-slate-200">
+
+    <h2 class="font-semibold text-sm text-slate-500 mb-2">Seu texto</h2>
+    <div class="bg-slate-50 rounded-lg border border-slate-200 p-4 text-sm whitespace-pre-line">
+      {{ redacao.texto }}
+    </div>
+
+    {% if correcao %}
+      <hr class="my-4 border-slate-200">
+
+      <h2 class="font-semibold text-sm text-slate-500 mb-3">Correção</h2>
+      <div class="grid grid-cols-5 gap-3 mb-3">
+        {% for comp in ['c1', 'c2', 'c3', 'c4', 'c5'] %}
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center">
+            <p class="text-xs text-slate-500 font-medium">C{{ comp.upper() }}</p>
+            <p class="text-lg font-bold">{{ correcao['nota_' + comp] }}</p>
+          </div>
+        {% endfor %}
+      </div>
+      <p class="text-sm">
+        <strong>Total:</strong>
+        {{ correcao.nota_c1 + correcao.nota_c2 + correcao.nota_c3 + correcao.nota_c4 + correcao.nota_c5 }}/1000
+      </p>
+      {% if correcao.comentario_geral %}
+        <p class="text-sm mt-3 text-slate-700"><strong>Comentário:</strong> {{ correcao.comentario_geral }}</p>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

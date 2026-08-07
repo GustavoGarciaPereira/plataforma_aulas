@@ -28,6 +28,12 @@
             <span class="bg-indigo-100 text-indigo-700 font-mono text-xs px-2 py-0.5 rounded shrink-0">{{ aula.ordem }}</span>
             <span class="truncate">{{ aula.titulo }}</span>
           </h2>
+          {% if aula.tema %}
+            <a href="{{ url_for('redacao_pagina', turma_id=turma.id, aula_id=aula.id) }}"
+               class="text-indigo-600 hover:underline text-sm font-medium whitespace-nowrap shrink-0">
+              ✍️ Enviar Redação
+            </a>
+          {% endif %}
           {% if aula.concluida %}
             <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
               ✓ Concluída

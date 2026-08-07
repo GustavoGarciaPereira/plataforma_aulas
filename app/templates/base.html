@@ -28,6 +28,7 @@
             <a href="{{ url_for('dashboard_professor') }}" class="hover:text-indigo-600">Minhas Turmas</a>
           {% else %}
             <a href="{{ url_for('dashboard') }}" class="hover:text-indigo-600">Dashboard</a>
+            <a href="{{ url_for('historico_redacoes') }}" class="hover:text-indigo-600">Minhas Redações</a>
             <a href="{{ url_for('listar_turmas_disponiveis') }}" class="hover:text-indigo-600">Turmas disponíveis</a>
           {% endif %}
           <span class="text-slate-500 hidden sm:inline">Olá, {{ usuario.nome }}</span>

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Minhas Redações — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div>
+    <a href="{{ url_for('dashboard') }}" class="text-sm text-slate-400 hover:underline">← Dashboard</a>
+    <h1 class="text-2xl font-bold mt-1">Minhas Redações</h1>
+  </div>
+</div>
+
+{% if redacoes %}
+  <div class="space-y-4">
+    {% for r in redacoes %}
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <h3 class="font-semibold truncate">{{ r.aula.tema or r.aula.titulo }}</h3>
+          <p class="text-sm text-slate-500 truncate">{{ r.aula.turma.nome }} · entregue em {{ r.data_entrega.strftime('%d/%m/%Y') }}</p>
+          {% if r.status == 'corrigida' %}
+            <p class="text-sm text-slate-600 mt-1">
+              Nota: <strong>{{ r.correcao.nota_c1 + r.correcao.nota_c2 + r.correcao.nota_c3 + r.correcao.nota_c4 + r.correcao.nota_c5 }}/1000</strong>
+            </p>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          {% if r.status == 'corrigida' %}
+            <span class="text-xs font-medium px-2 py-1 rounded bg-emerald-100 text-emerald-700">Corrigida</span>
+          {% else %}
+            <span class="text-xs font-medium px-2 py-1 rounded bg-amber-100 text-amber-700">Entregue</span>
+          {% endif %}
+          <a href="{{ url_for('ver_correcao', redacao_id=r.id) }}"
+             class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+            Ver detalhes
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+    Você ainda não enviou nenhuma redação.
+  </div>
+{% endif %}
+{% endblock %}

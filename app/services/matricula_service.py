@@ -152,6 +152,7 @@ def listar_aulas_para_aluno(db: Session, turma_id: int, aluno_id: int) -> dict:
                 "ordem": a.ordem,
                 "embed_url": a.embed_url,
                 "concluida": a.id in concluidas,
+                "tema": a.tema,  # RF08: proposta de redação (botão na página da turma)
             }
             for a in aulas
         ]

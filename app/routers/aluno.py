@@ -4,7 +4,7 @@ Router fino: lógica em app/services/matricula_service.py; aqui ficam
 respostas, flash e redirects. Todas as rotas exigem login (get_current_user).
 """
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -21,6 +21,12 @@ from ..services.matricula_service import (
 )
 from ..services.matricula_service import (
     listar_turmas_disponiveis as listar_turmas_service,  # alias: o nome da rota é o mesmo
+)
+from ..services.redacao_service import (
+    listar_redacoes_do_aluno,
+    obter_dados_redacao_do_aluno,
+    obter_redacao_com_correcao,
+    submeter_redacao,
 )
 from ..templating import templates
 from ..utils.csrf import verificar_csrf
@@ -112,3 +118,61 @@ def concluir_post(request: Request, aula_id: int, db: Session = Depends(get_db))
         return RedirectResponse(f"/turmas/{aula.turma_id}", status_code=303)
     except (ValueError, RuntimeError) as exc:
         return _erro_redirect(request, exc, "/dashboard")
+
+
+# ---------------------------------------------------------------- RF08 ----
+# Submissão de redação, histórico e correção (Semanas 2-3).
+
+
+@router.get("/turmas/{turma_id}/aulas/{aula_id}/redacao")
+def redacao_pagina(request: Request, turma_id: int, aula_id: int, db: Session = Depends(get_db)):
+    """Página da redação da aula: formulário de submissão ou a redação já enviada."""
+    try:
+        dados = obter_dados_redacao_do_aluno(db, request.session["user_id"], turma_id, aula_id)
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, "/turmas-disponiveis")
+    if dados["redacao"]:
+        return templates.TemplateResponse(request, "ver_redacao.html", dados)
+    return templates.TemplateResponse(request, "submeter_redacao.html", dados)
+
+
+@router.post("/turmas/{turma_id}/aulas/{aula_id}/redacao", dependencies=[Depends(verificar_csrf)])
+def redacao_submeter(
+    request: Request,
+    turma_id: int,
+    aula_id: int,
+    texto: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Submete a redação do aluno para a aula (RF08). Anti-trapaça no service."""
+    destino_erro = f"/turmas/{turma_id}/aulas/{aula_id}/redacao"
+    try:
+        dados = obter_dados_redacao_do_aluno(db, request.session["user_id"], turma_id, aula_id)
+        submeter_redacao(db, dados["matricula"].id, aula_id, texto)
+        flash(request, "success", "Redação enviada com sucesso!")
+        return RedirectResponse(destino_erro, status_code=303)
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, destino_erro)
+
+
+# ---------------------------------------------------------------- RF09 ----
+
+
+@router.get("/redacoes")
+def historico_redacoes(request: Request, db: Session = Depends(get_db)):
+    """Histórico de redações do aluno (RF10)."""
+    try:
+        redacoes = listar_redacoes_do_aluno(db, request.session["user_id"])
+    except RuntimeError as exc:
+        return _erro_redirect(request, exc, "/dashboard")
+    return templates.TemplateResponse(request, "historico_redacoes.html", {"redacoes": redacoes})
+
+
+@router.get("/redacoes/{redacao_id}")
+def ver_correcao(request: Request, redacao_id: int, db: Session = Depends(get_db)):
+    """Detalhe da redação do aluno com a correção (se houver). Verifica propriedade."""
+    try:
+        redacao = obter_redacao_com_correcao(db, redacao_id, request.session["user_id"])
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, "/redacoes")
+    return templates.TemplateResponse(request, "ver_correcao.html", {"redacao": redacao})
