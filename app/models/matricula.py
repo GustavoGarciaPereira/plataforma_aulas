@@ -11,6 +11,7 @@ from .base import Base, utcnow
 if TYPE_CHECKING:
     from .aluno import Aluno
     from .aula_concluida import AulaConcluida
+    from .redacao import Redacao
     from .turma import Turma
 
 
@@ -37,6 +38,10 @@ class Matricula(Base):
     aluno: Mapped["Aluno"] = relationship(back_populates="matriculas")
     turma: Mapped["Turma"] = relationship(back_populates="matriculas")
     concluidas: Mapped[list["AulaConcluida"]] = relationship(
+        back_populates="matricula",
+        cascade="all, delete-orphan",
+    )
+    redacoes: Mapped[list["Redacao"]] = relationship(
         back_populates="matricula",
         cascade="all, delete-orphan",
     )

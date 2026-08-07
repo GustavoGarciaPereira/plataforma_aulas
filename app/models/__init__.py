@@ -11,15 +11,17 @@ Ajustes técnicos aplicados em relação ao apêndice do PRD (ver análise):
 Este pacote substitui o antigo `app/models.py` (arquivo único): cada entidade
 vive em seu módulo e este `__init__` reexporta tudo para não quebrar imports
 existentes (`from app.models import Base, Professor, Aluno, Turma, Aula,
-Matricula, AulaConcluida`).
+Matricula, AulaConcluida, Redacao, Correcao`).
 """
 
 from .aluno import Aluno
 from .aula import Aula
 from .aula_concluida import AulaConcluida
 from .base import Base, utcnow
+from .correcao import Correcao
 from .matricula import Matricula
 from .professor import Professor
+from .redacao import Redacao
 from .turma import Turma
 
 __all__ = [
@@ -27,8 +29,10 @@ __all__ = [
     "Aula",
     "AulaConcluida",
     "Base",
+    "Correcao",
     "Matricula",
     "Professor",
+    "Redacao",
     "Turma",
     "utcnow",
 ]
