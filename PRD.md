@@ -4,10 +4,13 @@ Aqui está um PRD detalhado para a plataforma, alinhado com tudo que você compa
 
 # 📄 PRD – Plataforma de Correção e Aulas de Redação
 
-**Versão:** 1.0  
+**Versão:** 1.1  
 **Data:** 06/08/2026  
-**Responsável:** [Seu nome]  
-**Stack definida:** Python, FastAPI, Jinja2, PostgreSQL, Tailwind CSS
+**Responsável:** Gustavo Garcia Pereira  
+**Status:** MVP Semana 1 (RF01–RF07) ✅ implementado e testado — 49 testes verdes  
+**Stack definida:** Python 3.12, FastAPI, Jinja2, SQLAlchemy 2.0, Alembic, PostgreSQL (prod) / SQLite (dev), Tailwind CSS
+
+> **Changelog:** v1.1 — decisões de implementação registradas na seção 14; v1.0 — documento original.
 
 ---
 
@@ -73,44 +76,39 @@ O produto será desenvolvido com tecnologias maduras e simples (FastAPI + Jinja 
 
 ## 5. Requisitos Funcionais
 
-### 5.1 MVP (Semana 1) – Trilha de Aulas e Progresso
+### 5.1 MVP (Semana 1) – Trilha de Aulas e Progresso — ✅ IMPLEMENTADO
 
-#### RF01 – Autenticação e Cadastro
-- Cadastro de aluno: nome, e-mail, senha.
-- Login para aluno e professor (sessão por cookies).
-- Professor padrão criado via seed.
+#### RF01 – Autenticação e Cadastro ✅
+- Cadastro de aluno: nome, e-mail, senha (hash bcrypt em `senha_hash` — nunca texto puro).
+- Login para aluno e professor (sessão por cookies: `user_id`/`role`/`nome`); logout via **POST** (GET seria vulnerável a CSRF).
+- Professor padrão criado via seed (`app/seed.py`, idempotente; senha sobrescrevível por `SEED_PROFESSOR_SENHA`).
 
-#### RF02 – Gestão de Turmas (Professor)
-- Criar, editar e excluir turmas.
-- Cada turma possui: nome, descrição, tipo (intensivo/regular).
+#### RF02 – Gestão de Turmas (Professor) ✅
+- Criar, editar e excluir turmas — somente a dona (validação de propriedade em todas as rotas).
+- Cada turma possui: nome, descrição, tipo (intensivo/regular/outro — select com validação no servidor).
 
-#### RF03 – Criação e Ordenação de Aulas
-- Adicionar aula à turma: título, URL do YouTube, ordem (número sequencial).
-- O sistema deve converter automaticamente o link do YouTube em embed (iframe com controles).
-- Reordenar aulas (arrastar ou seta para cima/baixo – opcional; MVP: apenas campo numérico).
+#### RF03 – Criação e Ordenação de Aulas ✅
+- Aula: título, URL do YouTube, ordem (campo numérico; vazio = automática `MAX(ordem)+1`; duplicidade rejeitada).
+- Conversão automática para embed: `https://www.youtube.com/embed/{id}?rel=0` (domínio canônico; o `youtube-nocookie.com` exibia “Video unavailable” em algumas redes).
+- Bônus implementado: mover aula ↑/↓ (troca com a adjacente) e reordenação automática (1..n) após exclusões.
 
-#### RF04 – Matrícula do Aluno
-- Aluno logado vê lista de turmas disponíveis.
-- Clica em “Entrar na turma” → matrícula criada (sem validação financeira).
-- Acesso à área da turma somente para alunos matriculados.
+#### RF04 – Matrícula do Aluno ✅
+- Aluno logado vê lista de turmas disponíveis (`/turmas-disponiveis`).
+- “Entrar na turma” → matrícula criada (sem validação financeira) — **idempotente** (UNIQUE aluno+turma).
+- Acesso à página da turma somente para matriculados (flash + redirect caso contrário).
 
-#### RF05 – Visualização das Aulas
-- Página da turma exibe lista de aulas em ordem, cada uma com:
-  - Título.
-  - Player do YouTube incorporado.
-  - Botão “Marcar como concluída”.
-- A conclusão é registrada por matrícula e aula.
+#### RF05 – Visualização das Aulas ✅
+- Página da turma (`/turmas/{id}`) exibe aulas em ordem, cada uma com player incorporado e botão “Marcar como concluída”.
+- Conclusão registrada por matrícula+aula (`AulaConcluida`, UNIQUE) — idempotente e **anti-trapaça** (a aula precisa pertencer à turma da matrícula).
+- Badge “✓ Concluída” + botão desabilitado após concluir.
 
-#### RF06 – Progresso do Aluno
-- Dashboard pessoal com:
-  - Turmas matriculadas.
-  - Barra de progresso (percentual de aulas concluídas).
-  - Últimas aulas assistidas.
-- Na página da turma, indicador visual das aulas já concluídas.
+#### RF06 – Progresso do Aluno ✅
+- Dashboard pessoal: turmas matriculadas, barra de progresso (%), últimas aulas concluídas; botão “Ver aulas” no card.
+- Indicador visual de conclusão na página da turma; navegação por papel (aluno x professora).
 
-#### RF07 – Cronograma para Download
-- Rota que gera uma página HTML otimizada para impressão (ou PDF via WeasyPrint) com a lista de aulas (título, ordem) da turma.
-- Botão “Baixar cronograma” na página da turma.
+#### RF07 – Cronograma para Download ✅
+- `/cronograma/{turma_id}` (exige login) → HTML otimizado para impressão (`@media print`, botão “Imprimir/Salvar PDF”).
+- Botão “Baixar cronograma” na página da turma. PDF real via WeasyPrint: pós-MVP (worker assíncrono).
 
 ### 5.2 Semanas 2-3 – Submissão e Correção de Redação
 
@@ -178,11 +176,11 @@ O produto será desenvolvido com tecnologias maduras e simples (FastAPI + Jinja 
 | Categoria | Especificação |
 |-----------|---------------|
 | Desempenho | Páginas renderizadas em < 200ms (server-side). Suporte a pelo menos 50 usuários simultâneos na V1. |
-| Segurança | Senhas hash (bcrypt), sessões seguras, proteção CSRF nos formulários. Dados isolados por professor (no futuro). |
+| Segurança | Senhas hash (bcrypt), sessões seguras, proteção CSRF nos formulários. Dados isolados por professor (no futuro). ✅ MVP: bcrypt (`app/security.py`), sessão por cookie assinado, CSRF com token de sessão + dependência `verificar_csrf` em todos os POSTs (login, cadastro, logout, CRUD, matrícula, conclusão). |
 | Escalabilidade | Arquitetura monolítica simples, com possibilidade de adicionar workers assíncronos para tarefas pesadas (PDF, envio de e-mail). |
 | Usabilidade | Interface responsiva (mobile-first), utilizando Tailwind CSS. Componentes autoexplicativos. |
 | Manutenibilidade | Código estruturado em módulos (routers, models, templates). Migrações com Alembic. |
-| Disponibilidade | Deploy em plataforma como Railway ou Render, com banco de dados gerenciado. |
+| Disponibilidade | Deploy em plataforma como Railway ou Render, com banco de dados gerenciado. ⏳ pendente (ver seção 14). |
 
 ---
 
@@ -209,38 +207,55 @@ O produto será desenvolvido com tecnologias maduras e simples (FastAPI + Jinja 
 
 ## 8. Arquitetura e Stack Tecnológica
 
-- **Linguagem:** Python 3.11+
-- **Framework web:** FastAPI (modo síncrono)
-- **Templating:** Jinja2 (com herança de layouts)
-- **ORM:** SQLAlchemy + psycopg2 (driver PostgreSQL síncrono)
+- **Linguagem:** Python 3.12 (venv do projeto: `plataforma_aulas/venv/`)
+- **Framework web:** FastAPI 0.141 (modo síncrono)
+- **Templating:** Jinja2 (herança de layouts; `app/templating.py` com context processors: usuário, flash, CSRF, `url_for` tolerante)
+- **ORM:** SQLAlchemy 2.0 + psycopg2-binary (driver PostgreSQL síncrono)
+- **Config:** pydantic-settings (`app/config.py` lê `.env` da raiz — DATABASE_URL, SECRET_KEY)
 - **Migrações:** Alembic
-- **Banco de dados:** PostgreSQL 15+
+- **Banco de dados:** PostgreSQL 15+ (produção) / **SQLite** (desenvolvimento local — `dev.db` na raiz, ignorado pelo git)
 - **Estilização:** Tailwind CSS via CDN (MVP), podendo evoluir para build próprio
-- **Autenticação:** Sessões com cookies (Starlette SessionMiddleware) – simples e rápido
-- **Geração de PDF:** WeasyPrint (para cronograma e futuros relatórios)
-- **Deploy:** Docker + Railway / Render / VPS
+- **Autenticação:** Sessões com cookies assinados (Starlette SessionMiddleware + itsdangerous); CSRF com token de sessão
+- **Geração de PDF:** ⏳ WeasyPrint pós-MVP (worker); MVP usa HTML com `@media print`
+- **Deploy:** Docker + Railway / Render / VPS — ⏳ pendente
 
-**Estrutura de diretórios planejada:**
+**Estrutura de diretórios atual:**
 
 ```
 app/
-  main.py
-  database.py
-  models.py
+  main.py            # app + middlewares + handler RedirecionarComFlash + routers
+  config.py          # Settings (pydantic-settings, .env)
+  database.py        # engine, SessionLocal, get_db
+  models.py          # 6 models (SQLAlchemy 2.0, Mapped)
+  dependencies.py    # get_current_user, require_professor
+  security.py        # hash_senha / verificar_senha (bcrypt)
+  seed.py            # professora Carla (idempotente)
+  templating.py      # Jinja2Templates + context processors
   routers/
-    auth.py
-    professor.py
-    aluno.py
-    turmas.py
-    aulas.py
-  templates/
-    base.html
-    ...
+    auth.py          # /auth (RF01)
+    professor.py     # /professor (RF02/RF03)
+    aluno.py         # dashboard, turmas-disponiveis, turma, concluir (RF04/05/06)
+    utils.py         # /cronograma (RF07)
+  services/
+    turma_service.py
+    aula_service.py
+    matricula_service.py
+  utils/
+    youtube.py       # extração de ID + embed
+    csrf.py          # token + verificar_csrf
+    flash.py         # flash() + processors
+    redirecionar.py  # exceção RedirecionarComFlash
+  templates/         # 11 templates (extends base.html, Tailwind CDN)
   static/
-    (css, js, imagens se necessário)
-alembic/
+services  → app/services (acima)
+tests/               # E2E (TestClient + SQLite temporário) e unitários de services
+  conftest.py
+  test_auth.py test_professor.py test_aluno.py test_progresso.py test_services.py
+alembic/             # migração 1a2b3c4d5e6f (init)
 requirements.txt
-Dockerfile
+requirements-dev.txt
+.env.example         # .env é local/ignorado
+AGENTS.md            # memória do projeto (estado atual completo)
 ```
 
 ---
@@ -273,12 +288,14 @@ Dockerfile
 | Risco | Mitigação |
 |-------|-----------|
 | Escopo se expandir durante o piloto (feature creep) | Congelar funcionalidades da semana 1; qualquer nova ideia vai para o backlog pós-MVP. |
-| Dificuldade de conversão do link do YouTube para embed | Implementar regex para extrair ID do vídeo e usar formato padrão de iframe. Testar com vários formatos de URL. |
+| Dificuldade de conversão do link do YouTube para embed | ✅ Implementado em `app/utils/youtube.py` (regex testada: watch, youtu.be, embed, shorts, live, v; tolera URL sem protocolo). Embed usa o domínio canônico `youtube.com/embed` — o `youtube-nocookie.com` exibia “Video unavailable” em algumas redes/regiões. |
 | Baixa adoção dos alunos por falta de notificações | Como paliativo, o professor pode enviar link da plataforma via WhatsApp. Notificações automáticas entram no roadmap futuro. |
 | Integração financeira complexa desacelera o MVP | Deixar pagamento por fora no início; a plataforma não terá bloqueio de acesso na V1. |
 | Suporte a múltiplos professores exige alterações de arquitetura | Projetar models com `owner_id` e usar queries com filtro desde o início (mesmo com professor único), facilitando a transição. |
 
 **Premissa:** O piloto será usado por uma única professora e um grupo controlado de alunos (≤ 30), sem necessidade de escalabilidade massiva.
+
+**Premissa v1.1:** Desenvolvimento local em SQLite (`dev.db`) — banco intocável (não excluir/resetar/backup); produção em PostgreSQL gerenciado.
 
 ---
 
@@ -295,6 +312,8 @@ Dockerfile
 
 ## 13. Apêndice – Prompt para Reasonix + DeepSeek (início do MVP)
 
+> ✅ **Executado e evoluído.** O prompt abaixo foi a base do MVP; as decisões de implementação (constraints de unicidade, `senha_hash`, camada de services, CSRF, SQLite dev) estão na seção 14 e no `AGENTS.md`.
+
 Se você quiser iniciar o projeto agora com seu agente de codificação, pode utilizar o seguinte prompt:
 
 > "Crie um projeto FastAPI com Jinja2 e PostgreSQL, estruturado em módulos. Utilize SQLAlchemy para ORM e Alembic para migrações. Implemente os seguintes modelos: Professor (id, nome, email, senha), Aluno (id, nome, email, senha), Turma (id, nome, descricao, professor_id FK), Aula (id, turma_id FK, titulo, youtube_url, ordem), Matricula (id, aluno_id FK, turma_id FK), AulaConcluida (id, matricula_id FK, aula_id FK, concluida_em). Configure sessões de autenticação com cookies. Gere telas com Tailwind CSS CDN. Inclua rotas de seed para criar um professor padrão. A aplicação deve permitir ao professor criar turma, adicionar aulas com URL do YouTube (convertida para embed automaticamente) e ordem; aluno se matricula, acessa turma, vê aulas em ordem com player do YouTube e botão 'Concluir'; dashboard do aluno mostra progresso; e rota para gerar cronograma em PDF (usando WeasyPrint)."
@@ -304,3 +323,28 @@ Assim você já tem a base do MVP. Depois é só iterar com prompts menores para
 ---
 
 Com este PRD em mãos, você tem um norte claro para a semana de desenvolvimento intenso e para as fases seguintes. O documento pode ser revisado e complementado conforme novas ideias surgirem, mas mantenha o foco do piloto: **trilha de aulas, progresso e cronograma**. Boa sorte e mãos à obra!
+
+---
+
+## 14. Changelog v1.1 — Decisões de Implementação (MVP concluído)
+
+Diferenças entre o PRD original (v1.0) e o que foi realmente implementado no MVP da Semana 1:
+
+| # | Decisão | Detalhe |
+|---|---------|---------|
+| 1 | `senha` → `senha_hash` | Nunca armazenar senha em texto puro; bcrypt via `app/security.py`; seed com `SEED_PROFESSOR_SENHA` |
+| 2 | UniqueConstraints adicionais | `UNIQUE(turma_id, ordem)` (ordem duplicada), `UNIQUE(aluno_id, turma_id)` (matrícula duplicada), `UNIQUE(matricula_id, aula_id)` (conclusão duplicada) |
+| 3 | `Turma.tipo` ganhou “outro” | Select validado no servidor (`TIPOS_VALIDOS` no service) |
+| 4 | Logout via POST | GET/logout seria vulnerável a CSRF; todos os POSTs têm `verificar_csrf` |
+| 5 | CSRF com token de sessão | Campo oculto nos forms + dependência; FastAPI 0.141 não interrompe endpoint com Response de dependência → exceção `RedirecionarComFlash` + handler global |
+| 6 | Camada de services | `app/services/` (turma/aula/matricula) com ValueError (flash amigável) e RuntimeError (rollback + flash genérico); routers finos |
+| 7 | Embed usa `youtube.com/embed` | `youtube-nocookie.com` exibia “Video unavailable” em algumas redes (bug real corrigido) |
+| 8 | Cronograma: HTML `@media print` | WeasyPrint adiado para worker (PRD permite HTML otimizado para impressão) |
+| 9 | Banco dev = SQLite (`dev.db`) | Produção segue PostgreSQL 15+; `.env.example` documenta as duas opções |
+| 10 | Ordem de aulas | Auto `MAX(ordem)+1` + rejeição de duplicidade + mover ↑/↓ (bônus) + reordenação pós-exclusão |
+| 11 | Conclusão anti-trapaça | Aula precisa pertencer à turma da matrícula; matrícula resolvida pela turma da aula + aluno da sessão |
+| 12 | Dependências extras | `itsdangerous` (SessionMiddleware), `python-multipart` (Form), `pydantic-settings`, `httpx`/`pytest` (dev) |
+
+**Status do MVP:** RF01–RF07 ✅ · 49 testes verdes · fluxo completo do aluno validado (10/10 passos) · 7+ commits locais (sem push).
+
+**Próximos passos:** Semanas 2-3 (RF08–RF10 — redação e correção C1–C5, detalhado no AGENTS.md) → deploy (Dockerfile + Railway/Render + Postgres) → Financeiro (RF11–13) → Analytics (RF14–15) → Multi-professor (RF16) → Extras (RF17–18).
