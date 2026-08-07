@@ -26,6 +26,7 @@
         <div class="flex items-center gap-4 text-sm">
           {% if usuario.role == "professor" %}
             <a href="{{ url_for('dashboard_professor') }}" class="hover:text-indigo-600">Minhas Turmas</a>
+            <a href="{{ url_for('redacoes_lista') }}" class="hover:text-indigo-600">Redações</a>
           {% else %}
             <a href="{{ url_for('dashboard') }}" class="hover:text-indigo-600">Dashboard</a>
             <a href="{{ url_for('historico_redacoes') }}" class="hover:text-indigo-600">Minhas Redações</a>

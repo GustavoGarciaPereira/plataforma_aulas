@@ -71,6 +71,24 @@ def listar_redacoes_pendentes(
         raise RuntimeError("Erro ao listar redações.") from exc
 
 
+def contar_redacoes_pendentes(db: Session, professor_id: int) -> int:
+    """Nº de redações com status 'entregue' (aguardando correção) nas turmas da professora."""
+    try:
+        return (
+            db.query(Redacao)
+            .join(Redacao.aula)
+            .join(Aula.turma)
+            .filter(
+                Turma.professor_id == professor_id,
+                Redacao.status == "entregue",
+            )
+            .count()
+        )
+    except Exception as exc:
+        db.rollback()
+        raise RuntimeError("Erro ao contar redações.") from exc
+
+
 def obter_redacao_para_correcao(db: Session, redacao_id: int, professor_id: int) -> Redacao:
     """Redação por id para correção, garantindo propriedade da professora."""
     try:

@@ -24,6 +24,7 @@ from ..services.aula_service import (
     reordenar_aulas,
 )
 from ..services.redacao_service import (
+    contar_redacoes_pendentes,
     corrigir_redacao,
     criar_proposta,
     listar_redacoes_pendentes,
@@ -73,12 +74,17 @@ def _miniatura(youtube_url: str) -> str | None:
 
 @router.get("/dashboard")
 def dashboard_professor(request: Request, db: Session = Depends(get_db)):
-    """Dashboard da professora: lista das suas turmas."""
+    """Dashboard da professora: lista das suas turmas + redações pendentes."""
     try:
         turmas = listar_turmas_por_professor(db, request.session["user_id"])
+        pendentes = contar_redacoes_pendentes(db, request.session["user_id"])
     except RuntimeError as exc:
         return _erro_redirect(request, exc, "/professor/dashboard")
-    return templates.TemplateResponse(request, "professor_dashboard.html", {"turmas": turmas})
+    return templates.TemplateResponse(
+        request,
+        "professor_dashboard.html",
+        {"turmas": turmas, "pendentes": pendentes},
+    )
 
 
 @router.get("/turmas/nova")

@@ -204,6 +204,18 @@ def test_nao_corrigir_duas_vezes(client):
     assert "já foi corrigida" in client.get(f"/professor/redacoes/{redacao_id}/corrigir").text
 
 
+def test_dashboard_professora_mostra_redacoes_pendentes(client):
+    """Regressão: professora vê link 'Redações' e contador de pendentes no dashboard."""
+    turma_id, aula_id = criar_turma_e_aula(client)
+    matricula_id = matricular_aluno(client, turma_id)
+    submeter_redacao(matricula_id, aula_id)
+    logar_professora(client)
+    r = client.get("/professor/dashboard")
+    assert r.status_code == 200
+    assert "/professor/redacoes" in r.text  # link do menu e botão do dashboard
+    assert "1 redação pendente" in r.text
+
+
 def test_nota_invalida_nao_salva(client):
     turma_id, aula_id = criar_turma_e_aula(client)
     matricula_id = matricular_aluno(client, turma_id)
