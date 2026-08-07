@@ -4,13 +4,13 @@ Aqui está um PRD detalhado para a plataforma, alinhado com tudo que você compa
 
 # 📄 PRD – Plataforma de Correção e Aulas de Redação
 
-**Versão:** 1.1  
+**Versão:** 1.3  
 **Data:** 06/08/2026  
 **Responsável:** Gustavo Garcia Pereira  
-**Status:** MVP Semana 1 (RF01–RF07) + Fase Redação (RF08–RF10) ✅ implementados e testados — 65 testes verdes  
+**Status:** MVP Semana 1 (RF01–RF07) + Fase Redação (RF08–RF10) ✅ implementados e testados — 81 testes verdes (uploads com abstração de storage)  
 **Stack definida:** Python 3.12, FastAPI, Jinja2, SQLAlchemy 2.0, Alembic, PostgreSQL (prod) / SQLite (dev), Tailwind CSS
 
-> **Changelog:** v1.2 — fase Redação (RF08–RF10) implementada (seção 14); v1.1 — decisões de implementação do MVP; v1.0 — documento original.
+> **Changelog:** v1.3 — upload de arquivos + abstração de storage (seção 14); v1.2 — fase Redação (RF08–RF10) implementada; v1.1 — decisões de implementação do MVP; v1.0 — documento original.
 
 ---
 
@@ -113,12 +113,12 @@ O produto será desenvolvido com tecnologias maduras e simples (FastAPI + Jinja 
 ### 5.2 Semanas 2-3 – Submissão e Correção de Redação — ✅ IMPLEMENTADO
 
 #### RF08 – Proposta de Redação ✅
-- Professor anexa proposta a uma aula (campos `tema`, `texto_apoio`, `comando` em `Aula`) via `/professor/turmas/{id}/aulas/{id}/proposta`.
-- Aluno entrega em textarea simples (`/turmas/{id}/aulas/{id}/redacao`); **uma redação por matrícula+aula** (UNIQUE; duplicidade rejeitada) e texto vazio rejeitado; anti-trapaça: aula precisa pertencer à turma da matrícula.
-- Botão “Enviar Redação” na página da turma quando a aula tem proposta. Limite de caracteres ou upload: futuro.
+- Professor anexa proposta a uma aula (campos `tema`, `texto_apoio`, `comando` em `Aula`) via `/professor/turmas/{id}/aulas/{id}/proposta`, com **arquivo opcional** (PDF/JPG/PNG ≤ 10MB).
+- Aluno entrega em textarea e/ou arquivo (`/turmas/{id}/aulas/{id}/redacao`); **uma redação por matrícula+aula** (UNIQUE); exige texto OU arquivo; **reupload** (texto e/ou arquivo) permitido até a correção — depois, nada; anti-trapaça: aula precisa pertencer à turma da matrícula.
+- Botão “Enviar Redação” na página da turma quando a aula tem proposta. Limite de caracteres no textarea: futuro.
 
 #### RF09 – Grade de Correção ✅
-- Professora vê redações (`/professor/redacoes`, filtro por turma) com **contador de pendentes no dashboard** e corrige com notas C1–C5 (0–200) + comentário geral (`/professor/redacoes/{id}/corrigir`).
+- Professora vê redações (`/professor/redacoes`, filtro por turma) com **contador de pendentes no dashboard** e corrige com notas C1–C5 (0–200) + comentário geral (`/professor/redacoes/{id}/corrigir`); texto da redação e arquivos (redação/proposta) disponíveis na página de correção.
 - Correção **única** por redação (`redacao_id` unique; segunda tentativa → erro amigável). Comentário por competência e destaque de trechos: futuro.
 
 #### RF10 – Histórico e Devolutiva ✅
@@ -244,23 +244,32 @@ app/
     professor.py     # /professor (RF02/03, RF08/09 — proposta e correção)
     aluno.py         # dashboard, turmas, matrícula, redações (RF04-06, RF08-10)
     utils.py         # /cronograma (RF07)
+    uploads.py       # GET /uploads/{caminho} (download protegido)
   services/
     turma_service.py
     aula_service.py
     matricula_service.py
     redacao_service.py  # proposta, submissão, correção, histórico (RF08-10)
+    upload_service.py   # validação + storage (composição)
+  storage/           # abstração de armazenamento de uploads
+    base.py          # interface StorageBackend (ABC)
+    local.py         # LocalStorage (disco, uploads/)
+    r2.py            # esqueleto Cloudflare R2 (futuro)
+    factory.py       # get_storage() por STORAGE_BACKEND (default local)
   utils/
     youtube.py       # extração de ID + embed
     csrf.py          # token + verificar_csrf
     flash.py         # flash() + processors
     redirecionar.py  # exceção RedirecionarComFlash
+    upload_validator.py  # magic bytes (PDF/JPG/PNG) + tamanho ≤10MB
   templates/         # 18 templates (extends base.html, Tailwind CDN)
   static/
 services  → app/services (acima)
 tests/               # E2E (TestClient + SQLite temporário) e unitários de services
   conftest.py
-  test_auth.py test_professor.py test_aluno.py test_progresso.py test_services.py test_redacao.py
-alembic/             # migrações: 1a2b3c4d5e6f (init) e 68348fb2d833 (redação)
+  test_auth.py test_professor.py test_aluno.py test_progresso.py test_services.py test_redacao.py test_upload.py test_storage.py
+alembic/             # migrações: 1a2b3c4d5e6f (init), 68348fb2d833 (redação), bf4fe48c4206 (upload)
+uploads/             # arquivos locais (propostas/, redacoes/) — ignorado pelo git (só .gitkeep)
 requirements.txt
 requirements-dev.txt
 .env.example         # .env é local/ignorado
@@ -372,4 +381,18 @@ Diferenças entre o PRD original (v1.0) e o que foi realmente implementado no MV
 
 **Status atual:** RF01–RF10 ✅ · 65 testes verdes · 12+ commits locais (sem push).
 
-**Próximos passos:** refinamentos de redação (comentário por competência, gráfico de evolução, limite de caracteres/upload) → deploy (Dockerfile + Railway/Render + Postgres) → Financeiro (RF11–13) → Analytics (RF14–15) → Multi-professor (RF16) → Extras (RF17–18).
+**Próximos passos (v1.2):** refinamentos de redação → deploy → Financeiro → Analytics → Multi-professor → Extras (detalhes na v1.3).
+
+### Changelog v1.3 — Upload de arquivos + abstração de storage
+
+| # | Decisão | Detalhe |
+|---|---------|---------|
+| 22 | Upload de arquivos | `Aula.proposta_arquivo` + `Redacao.arquivo_path` (migração `bf4fe48c4206`); PDF/JPG/PNG validados por **magic bytes** (extensão nunca vem do nome do cliente), ≤10MB, nome `uuid4.hex`; submissão exige texto OU arquivo; reupload (texto e/ou arquivo) até a correção |
+| 23 | Download protegido | `GET /uploads/{caminho}` — proposta: professor dono da turma ou aluno matriculado; redação: aluno dono ou professor da turma; não autorizado → **404** (não revela existência); anônimo → login; anti path traversal |
+| 24 | Abstração de storage | `app/storage/`: `StorageBackend` (ABC), `LocalStorage` (disco), `R2Storage` (esqueleto documentado), `get_storage()` por `STORAGE_BACKEND` (default `local`; `r2` → NotImplementedError) — services usam injeção/factory, prontos para Cloudflare R2 sem mudanças |
+| 25 | Validação/composição separadas | `upload_validator.py` (magic bytes/tamanho; devolve a extensão) + `upload_service.py` (`salvar_upload`/`substituir_upload`: valida + storage) |
+| 26 | Testes | `test_upload.py` (9 E2E: upload, rejeição, substituição, bloqueio pós-correção, permissões de download) + `test_storage.py` (7 unitários: LocalStorage com `tmp_path`, factory, validador) — total **81 verdes** |
+
+**Status atual:** RF01–RF10 ✅ · uploads com storage abstraído · 81 testes verdes · 25+ commits locais (sem push).
+
+**Próximos passos:** refinamentos de redação (comentário por competência, gráfico de evolução, limite de caracteres, limpeza de órfãos na exclusão de aula) → R2 (`R2Storage` + `STORAGE_BACKEND=r2`) → deploy (Dockerfile + Railway/Render + Postgres) → Financeiro (RF11–13) → Analytics (RF14–15) → Multi-professor (RF16) → Extras (RF17–18).
