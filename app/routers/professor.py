@@ -308,17 +308,27 @@ def proposta_salvar(
 
 
 @router.get("/redacoes")
-def redacoes_lista(request: Request, turma_id: int | None = None, db: Session = Depends(get_db)):
-    """Redações das turmas da professora (pendentes e corrigidas), filtro opcional por turma."""
+def redacoes_lista(request: Request, turma_id: str | None = None, db: Session = Depends(get_db)):
+    """Redações das turmas da professora (pendentes e corrigidas), filtro opcional por turma.
+
+    `turma_id` chega como str: o select "Todas as turmas" envia `?turma_id=` vazio,
+    que não é int válido para o FastAPI — vazio vira None (lista todas).
+    """
+    filtro_turma: int | None = None
+    if turma_id is not None and turma_id.strip():
+        if not turma_id.strip().isdigit():
+            flash(request, "error", "Filtro de turma inválido.")
+            return RedirectResponse("/professor/redacoes", status_code=303)
+        filtro_turma = int(turma_id.strip())
     try:
-        redacoes = listar_redacoes_pendentes(db, request.session["user_id"], turma_id)
+        redacoes = listar_redacoes_pendentes(db, request.session["user_id"], filtro_turma)
         turmas = listar_turmas_por_professor(db, request.session["user_id"])
     except RuntimeError as exc:
         return _erro_redirect(request, exc, "/professor/dashboard")
     return templates.TemplateResponse(
         request,
         "redacoes_lista.html",
-        {"redacoes": redacoes, "turmas": turmas, "turma_id": turma_id},
+        {"redacoes": redacoes, "turmas": turmas, "turma_id": filtro_turma},
     )
 
 

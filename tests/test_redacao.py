@@ -216,6 +216,27 @@ def test_dashboard_professora_mostra_redacoes_pendentes(client):
     assert "1 redação pendente" in r.text
 
 
+def test_filtro_vazio_lista_todas_as_redacoes(client):
+    """Regressão: 'Todas as turmas' envia ?turma_id= — deve listar tudo (nunca 422)."""
+    turma_id, aula_id = criar_turma_e_aula(client)
+    matricula_id = matricular_aluno(client, turma_id)
+    submeter_redacao(matricula_id, aula_id, "Redação do filtro.")
+    logar_professora(client)
+    r = client.get("/professor/redacoes?turma_id=")
+    assert r.status_code == 200
+    assert "Redação do filtro." in r.text
+    # filtro com id válido continua funcionando
+    r = client.get(f"/professor/redacoes?turma_id={turma_id}")
+    assert r.status_code == 200 and "Redação do filtro." in r.text
+
+
+def test_filtro_invalido_redireciona_com_flash(client):
+    logar_professora(client)
+    r = client.get("/professor/redacoes?turma_id=abc", follow_redirects=False)
+    assert r.headers["location"] == "/professor/redacoes"
+    assert "Filtro de turma inválido." in client.get("/professor/redacoes").text
+
+
 def test_nota_invalida_nao_salva(client):
     turma_id, aula_id = criar_turma_e_aula(client)
     matricula_id = matricular_aluno(client, turma_id)
