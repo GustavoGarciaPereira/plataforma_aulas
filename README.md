@@ -86,7 +86,7 @@ app/
   main.py            # aplicação + middlewares + rotas
   routers/           # auth, professor, aluno, utils (finos)
   services/          # turma_service, aula_service, matricula_service
-  models.py          # Professor, Aluno, Turma, Aula, Matricula, AulaConcluida
+  models/            # pacote: base.py + 1 módulo por model (Professor, Aluno, Turma, ...)
   templates/         # 11 templates Jinja2 (Tailwind CDN)
   utils/             # youtube, csrf, flash, redirecionar
   config.py          # settings (.env)

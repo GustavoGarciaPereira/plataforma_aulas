@@ -226,7 +226,15 @@ app/
   main.py            # app + middlewares + handler RedirecionarComFlash + routers
   config.py          # Settings (pydantic-settings, .env)
   database.py        # engine, SessionLocal, get_db
-  models.py          # 6 models (SQLAlchemy 2.0, Mapped)
+  models/            # 6 models (SQLAlchemy 2.0, Mapped) — 1 módulo por entidade
+    base.py          # Base (DeclarativeBase) + helper utcnow
+    professor.py     # Professor
+    aluno.py         # Aluno
+    turma.py         # Turma
+    aula.py          # Aula (property embed_url)
+    matricula.py     # Matricula
+    aula_concluida.py  # AulaConcluida
+    __init__.py      # reexporta tudo (imports antigos continuam válidos)
   dependencies.py    # get_current_user, require_professor
   security.py        # hash_senha / verificar_senha (bcrypt)
   seed.py            # professora Carla (idempotente)

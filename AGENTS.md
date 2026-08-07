@@ -30,6 +30,7 @@ venv/bin/python -m app.seed                 # seed da professora Carla (idempote
 - `app/main.py` — app, SessionMiddleware, handler `RedirecionarComFlash`, inclui routers.
 - `app/routers/` — **finos**: `auth.py` (/auth), `professor.py` (/professor, RF02/03), `aluno.py` (RF04/05/06), `utils.py` (/cronograma, RF07). Lógica de negócio NUNCA no router.
 - `app/services/` — `turma_service.py`, `aula_service.py`, `matricula_service.py`: validam e persistem; erros: `ValueError` (mensagem amigável → flash) e `RuntimeError` (rollback + flash genérico).
+- `app/models/` — pacote com um módulo por entidade: `base.py` (`Base` + `utcnow`), `professor.py`, `aluno.py`, `turma.py`, `aula.py`, `matricula.py`, `aula_concluida.py`; o `__init__.py` reexporta tudo, então `from app.models import ...` continua funcionando como antes.
 - `app/templating.py` — `Jinja2Templates` compartilhado + context processors (`usuario`, `mensagens` flash, `csrf_token`, `url_for` tolerante → `#` se rota não existe).
 - `app/utils/` — `youtube.py` (extração de ID + embed), `csrf.py`, `flash.py`, `redirecionar.py`.
 - `app/dependencies.py` — `get_current_user` (login obrigatório), `require_professor` (role professor); lançam `RedirecionarComFlash`.
@@ -37,7 +38,7 @@ venv/bin/python -m app.seed                 # seed da professora Carla (idempote
 
 ## Database
 
-Models em `app/models.py` (Base = `DeclarativeBase`):
+Models no pacote `app/models/` (Base = `DeclarativeBase`, em `base.py`; `__init__.py` reexporta tudo):
 
 - `Professor(id, nome, email unique, senha_hash)` → turmas
 - `Aluno(id, nome, email unique, senha_hash)` → matriculas
