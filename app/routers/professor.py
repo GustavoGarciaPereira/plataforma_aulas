@@ -23,6 +23,12 @@ from ..services.aula_service import (
     mover_aula,
     reordenar_aulas,
 )
+from ..services.redacao_service import (
+    corrigir_redacao,
+    criar_proposta,
+    listar_redacoes_pendentes,
+    obter_redacao_para_correcao,
+)
 from ..services.turma_service import (
     TIPOS_VALIDOS,
     criar_turma,
@@ -250,3 +256,105 @@ def aula_mover(
         return RedirectResponse(f"/professor/turmas/{aula.turma_id}/aulas", status_code=303)
     except (ValueError, RuntimeError) as exc:
         return _erro_redirect(request, exc, "/professor/dashboard")
+
+
+# ---------------------------------------------------------------- RF08 ----
+# Proposta de redação e correção (Semanas 2-3).
+
+
+@router.get("/turmas/{turma_id}/aulas/{aula_id}/proposta")
+def proposta_form(request: Request, turma_id: int, aula_id: int, db: Session = Depends(get_db)):
+    """Formulário da proposta de redação de uma aula (criar/editar)."""
+    try:
+        turma = buscar_turma_do_professor(db, turma_id, request.session["user_id"])
+        aula = buscar_aula_da_professora(db, aula_id, request.session["user_id"])
+        if aula.turma_id != turma_id:
+            raise ValueError("Aula não encontrada.")
+    except ValueError as exc:
+        return _erro_redirect(request, exc, "/professor/dashboard")
+    return templates.TemplateResponse(request, "proposta_form.html", {"turma": turma, "aula": aula})
+
+
+@router.post("/turmas/{turma_id}/aulas/{aula_id}/proposta", dependencies=[Depends(verificar_csrf)])
+def proposta_salvar(
+    request: Request,
+    turma_id: int,
+    aula_id: int,
+    tema: str = Form(""),
+    texto_apoio: str = Form(""),
+    comando: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    """Salva (cria/atualiza) a proposta de redação da aula."""
+    destino_erro = f"/professor/turmas/{turma_id}/aulas/{aula_id}/proposta"
+    try:
+        aula = buscar_aula_da_professora(db, aula_id, request.session["user_id"])
+        if aula.turma_id != turma_id:
+            raise ValueError("Aula não encontrada.")
+        criar_proposta(db, aula_id, request.session["user_id"], tema, texto_apoio, comando)
+        flash(request, "success", "Proposta salva!")
+        return RedirectResponse(f"/professor/turmas/{turma_id}/aulas", status_code=303)
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, destino_erro)
+
+
+# ---------------------------------------------------------------- RF09 ----
+
+
+@router.get("/redacoes")
+def redacoes_lista(request: Request, turma_id: int | None = None, db: Session = Depends(get_db)):
+    """Redações das turmas da professora (pendentes e corrigidas), filtro opcional por turma."""
+    try:
+        redacoes = listar_redacoes_pendentes(db, request.session["user_id"], turma_id)
+        turmas = listar_turmas_por_professor(db, request.session["user_id"])
+    except RuntimeError as exc:
+        return _erro_redirect(request, exc, "/professor/dashboard")
+    return templates.TemplateResponse(
+        request,
+        "redacoes_lista.html",
+        {"redacoes": redacoes, "turmas": turmas, "turma_id": turma_id},
+    )
+
+
+@router.get("/redacoes/{redacao_id}/corrigir")
+def redacao_corrigir(request: Request, redacao_id: int, db: Session = Depends(get_db)):
+    """Formulário de correção (ou leitura, se já corrigida) de uma redação."""
+    try:
+        redacao = obter_redacao_para_correcao(db, redacao_id, request.session["user_id"])
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, "/professor/redacoes")
+    return templates.TemplateResponse(request, "corrigir_redacao.html", {"redacao": redacao})
+
+
+@router.post("/redacoes/{redacao_id}/corrigir", dependencies=[Depends(verificar_csrf)])
+def redacao_corrigir_post(
+    request: Request,
+    redacao_id: int,
+    nota_c1: str = Form("0"),
+    nota_c2: str = Form("0"),
+    nota_c3: str = Form("0"),
+    nota_c4: str = Form("0"),
+    nota_c5: str = Form("0"),
+    comentario_geral: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    """Salva a correção C1–C5 da redação."""
+    destino_erro = f"/professor/redacoes/{redacao_id}/corrigir"
+    notas = {}
+    for comp, valor in (
+        ("c1", nota_c1),
+        ("c2", nota_c2),
+        ("c3", nota_c3),
+        ("c4", nota_c4),
+        ("c5", nota_c5),
+    ):
+        if not valor.strip().isdigit():
+            flash(request, "error", f"Nota {comp.upper()} deve ser um número de 0 a 200.")
+            return RedirectResponse(destino_erro, status_code=303)
+        notas[comp] = int(valor)
+    try:
+        corrigir_redacao(db, redacao_id, request.session["user_id"], notas, comentario_geral)
+        flash(request, "success", "Correção salva!")
+        return RedirectResponse("/professor/redacoes", status_code=303)
+    except (ValueError, RuntimeError) as exc:
+        return _erro_redirect(request, exc, destino_erro)

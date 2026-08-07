@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Proposta de Redação — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto mt-6 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+  <a href="{{ url_for('aulas_lista', turma_id=turma.id) }}" class="text-sm text-slate-400 hover:underline">
+    ← Aulas de {{ turma.nome }}
+  </a>
+  <h1 class="text-2xl font-bold mt-1 mb-1">Proposta de Redação</h1>
+  <p class="text-sm text-slate-500 mb-6">{{ aula.titulo }}</p>
+
+  <form method="post"
+        action="{{ url_for('proposta_salvar', turma_id=turma.id, aula_id=aula.id) }}"
+        class="space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div>
+      <label for="tema" class="block text-sm font-medium text-slate-700 mb-1">Tema</label>
+      <input type="text" id="tema" name="tema" maxlength="200" value="{{ aula.tema or '' }}"
+             placeholder="Ex.: Os desafios da educação no século XXI"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    </div>
+
+    <div>
+      <label for="texto_apoio" class="block text-sm font-medium text-slate-700 mb-1">Texto de apoio</label>
+      <textarea id="texto_apoio" name="texto_apoio" rows="5"
+                placeholder="Cole aqui os textos motivadores (opcional)..."
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ aula.texto_apoio or '' }}</textarea>
+    </div>
+
+    <div>
+      <label for="comando" class="block text-sm font-medium text-slate-700 mb-1">Comando</label>
+      <textarea id="comando" name="comando" rows="3"
+                placeholder="Ex.: Disserte sobre o tema em até 30 linhas."
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ aula.comando or '' }}</textarea>
+    </div>
+
+    <button type="submit"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition">
+      Salvar proposta
+    </button>
+  </form>
+</div>
+{% endblock %}

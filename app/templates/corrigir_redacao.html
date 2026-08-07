@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Corrigir Redação — Plataforma de Redação{% endblock %}
+
+{% block content %}
+{% set correcao = redacao.correcao %}
+<div class="max-w-3xl mx-auto mt-6 space-y-4">
+  <a href="{{ url_for('redacoes_lista') }}" class="text-sm text-slate-400 hover:underline">← Redações</a>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <h1 class="text-2xl font-bold">{{ "Correção" if correcao else "Corrigir Redação" }}</h1>
+    <p class="text-sm text-slate-500 mt-1">
+      {{ redacao.matricula.aluno.nome }} — {{ redacao.aula.turma.nome }} · {{ redacao.aula.titulo }}
+    </p>
+    {% if redacao.aula.tema %}
+      <p class="text-sm text-slate-600 mt-2"><strong>Tema:</strong> {{ redacao.aula.tema }}</p>
+    {% endif %}
+    {% if redacao.aula.texto_apoio %}
+      <p class="text-sm text-slate-600 mt-1 whitespace-pre-line"><strong>Texto de apoio:</strong> {{ redacao.aula.texto_apoio }}</p>
+    {% endif %}
+    {% if redacao.aula.comando %}
+      <p class="text-sm text-slate-600 mt-1"><strong>Comando:</strong> {{ redacao.aula.comando }}</p>
+    {% endif %}
+
+    <hr class="my-4 border-slate-200">
+
+    <h2 class="font-semibold text-sm text-slate-500 mb-2">Redação do aluno</h2>
+    <div class="bg-slate-50 rounded-lg border border-slate-200 p-4 text-sm whitespace-pre-line">
+      {{ redacao.texto }}
+    </div>
+  </div>
+
+  <form method="post"
+        action="{{ url_for('redacao_corrigir_post', redacao_id=redacao.id) }}"
+        class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div>
+      <h2 class="font-semibold text-sm text-slate-500 mb-2">Notas por competência (0–200)</h2>
+      <div class="grid grid-cols-5 gap-3">
+        {% for comp in ['c1', 'c2', 'c3', 'c4', 'c5'] %}
+          <div>
+            <label for="nota_{{ comp }}" class="block text-sm font-medium text-slate-700 mb-1">C{{ comp.upper() }}</label>
+            <input type="number" id="nota_{{ comp }}" name="nota_{{ comp }}" min="0" max="200"
+                   value="{{ correcao['nota_' + comp] if correcao else 0 }}"
+                   {% if correcao %}disabled{% endif %}
+                   class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        {% endfor %}
+      </div>
+      {% if correcao %}
+        <p class="text-sm text-slate-600 mt-2">
+          <strong>Total:</strong> {{ correcao.nota_c1 + correcao.nota_c2 + correcao.nota_c3 + correcao.nota_c4 + correcao.nota_c5 }}/1000
+        </p>
+      {% endif %}
+    </div>
+
+    <div>
+      <label for="comentario_geral" class="block text-sm font-medium text-slate-700 mb-1">Comentário geral</label>
+      <textarea id="comentario_geral" name="comentario_geral" rows="4"
+                {% if correcao %}disabled{% endif %}
+                placeholder="Aspectos positivos, pontos de melhoria..."
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ correcao.comentario_geral if correcao else '' }}</textarea>
+    </div>
+
+    {% if not correcao %}
+      <button type="submit"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition">
+        Salvar correção
+      </button>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

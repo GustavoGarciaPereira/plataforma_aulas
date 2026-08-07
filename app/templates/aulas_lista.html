@@ -40,6 +40,8 @@
           <div class="flex flex-wrap items-center gap-4 mt-3 text-sm">
             <a href="{{ url_for('aula_editar', aula_id=item.aula.id) }}"
                class="text-indigo-600 hover:underline">Editar</a>
+            <a href="{{ url_for('proposta_form', turma_id=turma.id, aula_id=item.aula.id) }}"
+               class="text-indigo-600 hover:underline">Proposta</a>
             <form method="post" action="{{ url_for('aula_mover', aula_id=item.aula.id) }}" class="inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <input type="hidden" name="direcao" value="cima">

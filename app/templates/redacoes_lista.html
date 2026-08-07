@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Redações — Plataforma de Redação{% endblock %}
+
+{% block content %}
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div>
+    <a href="{{ url_for('dashboard_professor') }}" class="text-sm text-slate-400 hover:underline">← Minhas Turmas</a>
+    <h1 class="text-2xl font-bold mt-1">Redações</h1>
+  </div>
+  <form method="get" action="{{ url_for('redacoes_lista') }}" class="flex items-center gap-2">
+    <select name="turma_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+      <option value="">Todas as turmas</option>
+      {% for t in turmas %}
+        <option value="{{ t.id }}" {% if turma_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+      Filtrar
+    </button>
+  </form>
+</div>
+
+{% if redacoes %}
+  <div class="space-y-4">
+    {% for r in redacoes %}
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <div class="flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <h3 class="font-semibold truncate">{{ r.matricula.aluno.nome }}</h3>
+            <p class="text-sm text-slate-500 truncate">{{ r.aula.turma.nome }} · {{ r.aula.titulo }}</p>
+            <p class="text-xs text-slate-400 mt-1">Entregue em {{ r.data_entrega.strftime('%d/%m/%Y') }}</p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            {% if r.status == 'entregue' %}
+              <span class="text-xs font-medium px-2 py-1 rounded bg-amber-100 text-amber-700">Pendente</span>
+              <a href="{{ url_for('redacao_corrigir', redacao_id=r.id) }}"
+                 class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                Corrigir
+              </a>
+            {% else %}
+              <span class="text-xs font-medium px-2 py-1 rounded bg-emerald-100 text-emerald-700">Corrigida</span>
+              <a href="{{ url_for('redacao_corrigir', redacao_id=r.id) }}"
+                 class="text-indigo-600 hover:underline text-sm font-medium">
+                Ver correção
+              </a>
+            {% endif %}
+          </div>
+        </div>
+        {% if r.aula.tema %}
+          <p class="text-sm text-slate-600 mt-2"><strong>Tema:</strong> {{ r.aula.tema }}</p>
+        {% endif %}
+        <p class="text-sm text-slate-500 mt-1 line-clamp-2">{{ r.texto }}</p>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+    Nenhuma redação por aqui ainda.
+  </div>
+{% endif %}
+{% endblock %}
