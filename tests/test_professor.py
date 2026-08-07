@@ -62,6 +62,20 @@ def test_dashboard_bloqueia_aluno(client):
 
 # ----------------------------------------------------------------- RF02 ---
 
+def test_form_turma_tem_select_tipo(client, login_professora):
+    """Regressão: o select 'Tipo' precisa renderizar as 3 opções (RF02)."""
+    login_professora()
+    r = client.get("/professor/turmas/nova")
+    assert r.status_code == 200
+    for opcao in ("intensivo", "regular", "outro"):
+        assert f'<option value="{opcao}"' in r.text, f"opção {opcao} ausente"
+
+    # edição: opção atual vem pré-selecionada
+    turma_id = criar_turma(client, None, nome="Select Teste", tipo="intensivo")
+    r = client.get(f"/professor/turmas/{turma_id}/editar")
+    assert '<option value="intensivo" selected' in r.text
+
+
 def test_criar_turma(client, login_professora):
     login_professora()
     turma_id = criar_turma(client, None)

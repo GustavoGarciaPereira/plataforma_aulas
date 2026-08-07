@@ -24,6 +24,7 @@ from ..services.aula_service import (
     reordenar_aulas,
 )
 from ..services.turma_service import (
+    TIPOS_VALIDOS,
     criar_turma,
     editar_turma,
     excluir_turma,
@@ -76,7 +77,9 @@ def dashboard_professor(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/turmas/nova")
 def turma_nova(request: Request):
-    return templates.TemplateResponse(request, "turma_form.html", {"turma": None})
+    return templates.TemplateResponse(
+        request, "turma_form.html", {"turma": None, "tipos": TIPOS_VALIDOS}
+    )
 
 
 @router.post("/turmas/nova", dependencies=[Depends(verificar_csrf)])
@@ -102,7 +105,7 @@ def turma_editar(request: Request, turma_id: int, db: Session = Depends(get_db))
     except ValueError as exc:
         return _erro_redirect(request, exc, "/professor/dashboard")
     return templates.TemplateResponse(
-        request, "turma_form.html", {"turma": turma}
+        request, "turma_form.html", {"turma": turma, "tipos": TIPOS_VALIDOS}
     )
 
 
