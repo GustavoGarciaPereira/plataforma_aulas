@@ -17,7 +17,7 @@ from ..services.matricula_service import (
     dados_dashboard,
     ja_matriculado,
     listar_aulas_para_aluno,
-    listar_turmas_disponiveis,
+    listar_turmas_disponiveis as listar_turmas_service,  # alias: o nome da rota é o mesmo
     matricular,
 )
 from ..templating import templates
@@ -49,9 +49,9 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/turmas-disponiveis")
-def listar_turmas_disponiveis_view(request: Request, db: Session = Depends(get_db)):
+def listar_turmas_disponiveis(request: Request, db: Session = Depends(get_db)):
     try:
-        turmas = listar_turmas_disponiveis(db)
+        turmas = listar_turmas_service(db)
         aluno_id = request.session["user_id"]
         itens = [
             {"turma": t, "matriculado": ja_matriculado(db, aluno_id, t.id)}

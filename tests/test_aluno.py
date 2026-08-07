@@ -47,6 +47,27 @@ def criar_turma_da_carla(client, nome="Intensivo ENEM"):
         return db.query(Turma).filter(Turma.nome == nome).one().id
 
 
+def test_nav_do_aluno_tem_links_reais(client):
+    """Regressão: url_for dos templates deve resolver (href real, não '#')."""
+    import re as _re
+
+    cadastrar_e_logar_aluno(client, email="nav@teste.com")
+    r = client.get("/dashboard")
+    # request.url_for gera URL absoluta (ex.: http://testserver/dashboard)
+    assert _re.search(r'href="[^"]*/dashboard"', r.text)
+    assert _re.search(r'href="[^"]*/turmas-disponiveis"', r.text)
+    assert 'href="#"' not in r.text  # nenhum link morto por nome de rota errado
+
+
+def test_nav_da_professora_tem_link_do_painel(client):
+    import re as _re
+
+    logar_professora(client)
+    r = client.get("/professor/dashboard")
+    assert _re.search(r'href="[^"]*/professor/dashboard"', r.text)
+    assert 'href="#"' not in r.text
+
+
 def test_dashboard_redireciona_anonimo(client):
     r = client.get("/dashboard", follow_redirects=False)
     assert (r.status_code, r.headers["location"]) == (302, "/auth/login")
@@ -82,6 +103,8 @@ def test_matricula_e_dashboard_com_progresso(client):
     r = client.get("/dashboard")
     assert "Intensivo ENEM" in r.text
     assert "0%" in r.text and "0 de 0" in r.text  # turma sem aulas
+    # card da turma tem link para a página da turma (URL absoluta do url_for)
+    assert f"/turmas/{turma_id}" in r.text
 
     # matrícula idempotente: segundo POST não quebra
     r = client.get("/turmas-disponiveis")

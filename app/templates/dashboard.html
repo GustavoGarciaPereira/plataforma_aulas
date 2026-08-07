@@ -31,6 +31,12 @@
         <p class="text-xs text-slate-400 mt-2">
           {{ item.aulas_concluidas }} de {{ item.total_aulas }} aulas concluídas
         </p>
+        <div class="mt-4">
+          <a href="{{ url_for('turma_aluno', turma_id=item.turma.id) }}"
+             class="inline-block w-full sm:w-auto text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition">
+            Ver aulas →
+          </a>
+        </div>
       </div>
     {% endfor %}
   </div>
