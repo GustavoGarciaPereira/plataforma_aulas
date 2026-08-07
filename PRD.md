@@ -7,10 +7,10 @@ Aqui está um PRD detalhado para a plataforma, alinhado com tudo que você compa
 **Versão:** 1.1  
 **Data:** 06/08/2026  
 **Responsável:** Gustavo Garcia Pereira  
-**Status:** MVP Semana 1 (RF01–RF07) ✅ implementado e testado — 49 testes verdes  
+**Status:** MVP Semana 1 (RF01–RF07) + Fase Redação (RF08–RF10) ✅ implementados e testados — 65 testes verdes  
 **Stack definida:** Python 3.12, FastAPI, Jinja2, SQLAlchemy 2.0, Alembic, PostgreSQL (prod) / SQLite (dev), Tailwind CSS
 
-> **Changelog:** v1.1 — decisões de implementação registradas na seção 14; v1.0 — documento original.
+> **Changelog:** v1.2 — fase Redação (RF08–RF10) implementada (seção 14); v1.1 — decisões de implementação do MVP; v1.0 — documento original.
 
 ---
 
@@ -39,7 +39,7 @@ O produto será desenvolvido com tecnologias maduras e simples (FastAPI + Jinja 
 |----------|-----------------|
 | Permitir que o professor publique trilhas de aulas e os alunos assistam dentro da plataforma | MVP (semana 1) |
 | Oferecer visualização de progresso e download de cronograma | MVP (semana 1) |
-| Receber redações e possibilitar correção estruturada (competências) | Semana 2-3 |
+| Receber redações e correção estruturada por competências (C1–C5) | ✅ Semana 2-3 (concluída) |
 | Gerir pagamentos recorrentes e controlar acesso | Semana 4-5 |
 | Suportar múltiplos professores, cada um com suas turmas | Semana 8+ |
 | Fornecer dashboards analíticos para o professor | Semana 6-7 |
@@ -110,22 +110,20 @@ O produto será desenvolvido com tecnologias maduras e simples (FastAPI + Jinja 
 - `/cronograma/{turma_id}` (exige login) → HTML otimizado para impressão (`@media print`, botão “Imprimir/Salvar PDF”).
 - Botão “Baixar cronograma” na página da turma. PDF real via WeasyPrint: pós-MVP (worker assíncrono).
 
-### 5.2 Semanas 2-3 – Submissão e Correção de Redação
+### 5.2 Semanas 2-3 – Submissão e Correção de Redação — ✅ IMPLEMENTADO
 
-#### RF08 – Proposta de Redação
-- Professor pode anexar uma proposta a uma aula (tema, texto de apoio, comando).
-- Campo de entrega para o aluno: editor de texto simples (textarea) com limite de caracteres ou upload de arquivo.
+#### RF08 – Proposta de Redação ✅
+- Professor anexa proposta a uma aula (campos `tema`, `texto_apoio`, `comando` em `Aula`) via `/professor/turmas/{id}/aulas/{id}/proposta`.
+- Aluno entrega em textarea simples (`/turmas/{id}/aulas/{id}/redacao`); **uma redação por matrícula+aula** (UNIQUE; duplicidade rejeitada) e texto vazio rejeitado; anti-trapaça: aula precisa pertencer à turma da matrícula.
+- Botão “Enviar Redação” na página da turma quando a aula tem proposta. Limite de caracteres ou upload: futuro.
 
-#### RF09 – Grade de Correção
-- Interface de correção para o professor:
-  - Visualizar redação do aluno.
-  - Inserir nota para cada competência (C1 a C5, escala 0-200 ou 0-10).
-  - Campo de comentário geral e campo específico por competência.
-  - Destacar trechos e associar comentários (funcionalidade futura).
+#### RF09 – Grade de Correção ✅
+- Professora vê redações (`/professor/redacoes`, filtro por turma) com **contador de pendentes no dashboard** e corrige com notas C1–C5 (0–200) + comentário geral (`/professor/redacoes/{id}/corrigir`).
+- Correção **única** por redação (`redacao_id` unique; segunda tentativa → erro amigável). Comentário por competência e destaque de trechos: futuro.
 
-#### RF10 – Histórico e Devolutiva
-- Aluno vê redações corrigidas com notas detalhadas e comentários.
-- Dashboard do aluno expandido com gráfico de evolução das notas (linha do tempo).
+#### RF10 – Histórico e Devolutiva ✅
+- Aluno vê histórico (`/redacoes`) e detalhe com tabela C1–C5, total /1000 e comentário (`/redacoes/{id}`); página da redação na turma mostra a correção quando corrigida.
+- Dashboard com gráfico de evolução das notas (linha do tempo): futuro.
 
 ### 5.3 Semanas 4-5 – Financeiro e Controle de Acesso
 
@@ -226,14 +224,16 @@ app/
   main.py            # app + middlewares + handler RedirecionarComFlash + routers
   config.py          # Settings (pydantic-settings, .env)
   database.py        # engine, SessionLocal, get_db
-  models/            # 6 models (SQLAlchemy 2.0, Mapped) — 1 módulo por entidade
+  models/            # 8 models (SQLAlchemy 2.0, Mapped) — 1 módulo por entidade
     base.py          # Base (DeclarativeBase) + helper utcnow
     professor.py     # Professor
     aluno.py         # Aluno
     turma.py         # Turma
-    aula.py          # Aula (property embed_url)
+    aula.py          # Aula (property embed_url; tema/texto_apoio/comando)
     matricula.py     # Matricula
     aula_concluida.py  # AulaConcluida
+    redacao.py       # Redacao (status entregue/corrigida)
+    correcao.py      # Correcao (notas C1-C5, 1:1 com Redacao)
     __init__.py      # reexporta tudo (imports antigos continuam válidos)
   dependencies.py    # get_current_user, require_professor
   security.py        # hash_senha / verificar_senha (bcrypt)
@@ -241,25 +241,26 @@ app/
   templating.py      # Jinja2Templates + context processors
   routers/
     auth.py          # /auth (RF01)
-    professor.py     # /professor (RF02/RF03)
-    aluno.py         # dashboard, turmas-disponiveis, turma, concluir (RF04/05/06)
+    professor.py     # /professor (RF02/03, RF08/09 — proposta e correção)
+    aluno.py         # dashboard, turmas, matrícula, redações (RF04-06, RF08-10)
     utils.py         # /cronograma (RF07)
   services/
     turma_service.py
     aula_service.py
     matricula_service.py
+    redacao_service.py  # proposta, submissão, correção, histórico (RF08-10)
   utils/
     youtube.py       # extração de ID + embed
     csrf.py          # token + verificar_csrf
     flash.py         # flash() + processors
     redirecionar.py  # exceção RedirecionarComFlash
-  templates/         # 11 templates (extends base.html, Tailwind CDN)
+  templates/         # 18 templates (extends base.html, Tailwind CDN)
   static/
 services  → app/services (acima)
 tests/               # E2E (TestClient + SQLite temporário) e unitários de services
   conftest.py
-  test_auth.py test_professor.py test_aluno.py test_progresso.py test_services.py
-alembic/             # migração 1a2b3c4d5e6f (init)
+  test_auth.py test_professor.py test_aluno.py test_progresso.py test_services.py test_redacao.py
+alembic/             # migrações: 1a2b3c4d5e6f (init) e 68348fb2d833 (redação)
 requirements.txt
 requirements-dev.txt
 .env.example         # .env é local/ignorado
@@ -273,7 +274,7 @@ AGENTS.md            # memória do projeto (estado atual completo)
 | Fase | Período | Entregáveis | Dependências |
 |------|---------|-------------|--------------|
 | **MVP** | Semana 1 | Autenticação, CRUD turmas/aulas, embed YouTube, matrícula, progresso, cronograma | Nenhuma |
-| **Redação** | Semanas 2-3 | Submissão de redação, correção por competências, histórico aluno | MVP |
+| **Redação** | Semanas 2-3 | Submissão de redação, correção por competências, histórico aluno ✅ | MVP |
 | **Financeiro** | Semanas 4-5 | Planos, checkout Mercado Pago, controle de acesso pago | MVP |
 | **Analytics** | Semanas 6-7 | Dashboards professor, relatórios de turma e aluno | Redação |
 | **Multi-professor** | Semana 8+ | Cadastro de múltiplos professores, isolamento de dados | MVP |
@@ -353,6 +354,22 @@ Diferenças entre o PRD original (v1.0) e o que foi realmente implementado no MV
 | 11 | Conclusão anti-trapaça | Aula precisa pertencer à turma da matrícula; matrícula resolvida pela turma da aula + aluno da sessão |
 | 12 | Dependências extras | `itsdangerous` (SessionMiddleware), `python-multipart` (Form), `pydantic-settings`, `httpx`/`pytest` (dev) |
 
-**Status do MVP:** RF01–RF07 ✅ · 49 testes verdes · fluxo completo do aluno validado (10/10 passos) · 7+ commits locais (sem push).
+**Status do MVP:** RF01–RF07 ✅ · 49 testes verdes · fluxo completo do aluno validado (10/10 passos).
 
-**Próximos passos:** Semanas 2-3 (RF08–RF10 — redação e correção C1–C5, detalhado no AGENTS.md) → deploy (Dockerfile + Railway/Render + Postgres) → Financeiro (RF11–13) → Analytics (RF14–15) → Multi-professor (RF16) → Extras (RF17–18).
+### Changelog v1.2 — Fase Redação (RF08–RF10) concluída
+
+| # | Decisão | Detalhe |
+|---|---------|---------|
+| 13 | Models `Redacao`/`Correcao` + campos de proposta em `Aula` | `redacao.py` e `correcao.py` no pacote `app/models/`; `Aula.tema/texto_apoio/comando` (nullable); `UNIQUE(matricula_id, aula_id)` e `redacao_id unique`; FKs com `ondelete=CASCADE` |
+| 14 | Migração `68348fb2d833` | `adiciona_redacao_e_correcao` — tabelas novas + colunas nullable (aditiva; aplicada no `dev.db`) |
+| 15 | `redacao_service.py` | Contrato ValueError/RuntimeError; `criar_proposta`, `submeter_redacao`, `corrigir_redacao`, listagens e getters com verificação de propriedade (professor/aluno) |
+| 16 | Rotas professor | Proposta (GET/POST), lista de redações com filtro por turma, correção (GET/POST); CSRF em todos os POSTs |
+| 17 | Rotas aluno | Submissão (GET/POST), histórico e detalhe com correção; anti-trapaça (aula da turma da matrícula; redação só do próprio aluno) |
+| 18 | 7 templates novos | `proposta_form`, `redacoes_lista`, `corrigir_redacao`, `submeter_redacao`, `ver_redacao`, `historico_redacoes`, `ver_correcao` (total: 18) |
+| 19 | Dashboard da professora | Link “Redações” no menu + badge com contador de pendentes (`contar_redacoes_pendentes`) |
+| 20 | Fix filtro 422 | Select “Todas as turmas” envia `?turma_id=` vazio → rota aceita `str` e converte (vazio = sem filtro; não-dígito → flash) |
+| 21 | Testes | `test_redacao.py` com 16 E2E (proposta, correção, submissão, histórico, filtros, isolamento) — total 65 verdes |
+
+**Status atual:** RF01–RF10 ✅ · 65 testes verdes · 12+ commits locais (sem push).
+
+**Próximos passos:** refinamentos de redação (comentário por competência, gráfico de evolução, limite de caracteres/upload) → deploy (Dockerfile + Railway/Render + Postgres) → Financeiro (RF11–13) → Analytics (RF14–15) → Multi-professor (RF16) → Extras (RF17–18).

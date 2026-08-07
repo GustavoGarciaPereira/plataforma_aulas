@@ -1,10 +1,10 @@
-# AGENTS.md — Plataforma de Redação (MVP Semana 1)
+# AGENTS.md — Plataforma de Redação (MVP Semana 1 + Redação RF08–RF10)
 
-Memória persistente do projeto: qualquer agente/desenvolvedor retoma daqui. Estado atualizado ao final do MVP da Semana 1.
+Memória persistente do projeto: qualquer agente/desenvolvedor retoma daqui. Estado atualizado ao final do MVP da Semana 1 e da fase Redação (Semanas 2-3).
 
 ## Project
 
-Plataforma web para professora de redação publicar trilhas de aulas (vídeos do YouTube), alunos se matricularem, assistirem e acompanharem progresso; correção de redações vem nas Semanas 2-3. Persona principal: professora **Carla** (`carla@exemplo.com`, seed).
+Plataforma web para professora de redação publicar trilhas de aulas (vídeos do YouTube), alunos se matricularem, assistirem e acompanharem progresso; correção de redações (RF08–RF10) implementada. Persona principal: professora **Carla** (`carla@exemplo.com`, seed).
 
 **Stack:** Python 3.12 · FastAPI (server-side) · Jinja2 · SQLAlchemy 2.0 · Alembic · PostgreSQL (produção) / **SQLite** (dev, `dev.db`) · Tailwind CSS via CDN · Starlette sessions (cookie assinado).
 
@@ -18,7 +18,7 @@ venv/bin/python -m venv venv                # já criado (Python 3.12)
 venv/bin/pip install -r requirements.txt    # runtime
 venv/bin/pip install -r requirements-dev.txt  # pytest, httpx
 venv/bin/uvicorn app.main:app --reload      # servidor dev (porta 8000)
-venv/bin/python -m pytest tests/ -q         # suíte (49 testes)
+venv/bin/python -m pytest tests/ -q         # suíte (65 testes)
 venv/bin/ruff check .                       # lint (config: ruff.toml)
 venv/bin/ruff format .                      # formatação (estilo Black)
 venv/bin/alembic upgrade head               # migrações
@@ -28,9 +28,9 @@ venv/bin/python -m app.seed                 # seed da professora Carla (idempote
 ## Architecture
 
 - `app/main.py` — app, SessionMiddleware, handler `RedirecionarComFlash`, inclui routers.
-- `app/routers/` — **finos**: `auth.py` (/auth), `professor.py` (/professor, RF02/03), `aluno.py` (RF04/05/06), `utils.py` (/cronograma, RF07). Lógica de negócio NUNCA no router.
-- `app/services/` — `turma_service.py`, `aula_service.py`, `matricula_service.py`: validam e persistem; erros: `ValueError` (mensagem amigável → flash) e `RuntimeError` (rollback + flash genérico).
-- `app/models/` — pacote com um módulo por entidade: `base.py` (`Base` + `utcnow`), `professor.py`, `aluno.py`, `turma.py`, `aula.py`, `matricula.py`, `aula_concluida.py`; o `__init__.py` reexporta tudo, então `from app.models import ...` continua funcionando como antes.
+- `app/routers/` — **finos**: `auth.py` (/auth), `professor.py` (/professor, RF02/03/08/09), `aluno.py` (RF04–06 e RF08–10), `utils.py` (/cronograma, RF07). Lógica de negócio NUNCA no router.
+- `app/services/` — `turma_service.py`, `aula_service.py`, `matricula_service.py`, `redacao_service.py`: validam e persistem; erros: `ValueError` (mensagem amigável → flash) e `RuntimeError` (rollback + flash genérico).
+- `app/models/` — pacote com um módulo por entidade: `base.py` (`Base` + `utcnow`), `professor.py`, `aluno.py`, `turma.py`, `aula.py`, `matricula.py`, `aula_concluida.py`, `redacao.py`, `correcao.py`; o `__init__.py` reexporta tudo, então `from app.models import ...` continua funcionando como antes.
 - `app/templating.py` — `Jinja2Templates` compartilhado + context processors (`usuario`, `mensagens` flash, `csrf_token`, `url_for` tolerante → `#` se rota não existe).
 - `app/utils/` — `youtube.py` (extração de ID + embed), `csrf.py`, `flash.py`, `redirecionar.py`.
 - `app/dependencies.py` — `get_current_user` (login obrigatório), `require_professor` (role professor); lançam `RedirecionarComFlash`.
@@ -43,11 +43,13 @@ Models no pacote `app/models/` (Base = `DeclarativeBase`, em `base.py`; `__init_
 - `Professor(id, nome, email unique, senha_hash)` → turmas
 - `Aluno(id, nome, email unique, senha_hash)` → matriculas
 - `Turma(id, nome, descricao, tipo: intensivo|regular|outro, professor_id FK)` → aulas, matriculas
-- `Aula(id, turma_id FK, titulo, youtube_url, ordem)` — property `embed_url`; `UNIQUE(turma_id, ordem)`
+- `Aula(id, turma_id FK, titulo, youtube_url, ordem, tema?, texto_apoio?, comando?)` — property `embed_url`; `UNIQUE(turma_id, ordem)`; campos de proposta da redação (RF08)
 - `Matricula(id, aluno_id FK, turma_id FK, criada_em)` — `UNIQUE(aluno_id, turma_id)`
 - `AulaConcluida(id, matricula_id FK, aula_id FK, concluida_em)` — `UNIQUE(matricula_id, aula_id)`
+- `Redacao(id, matricula_id FK, aula_id FK, texto, status: entregue|corrigida, data_entrega)` — `UNIQUE(matricula_id, aula_id)`
+- `Correcao(id, redacao_id FK unique, nota_c1..nota_c5 (0-200), comentario_geral?, data_correcao)` — 1:1 com Redacao (`uselist=False`)
 
-Migração Alembic `1a2b3c4d5e6f` (init). **Estado atual do `dev.db`** (set/2026): 1 professora (Carla), 3 turmas (TURMA 1 regular 2 aulas, TURMA 2 intensivo 2 aulas, TURMA 3 regular 1 aula), 5 aulas, 2 alunos, 3 matrículas (aluno2→T1, aluno2→T2, aluno3→T1).
+Migrações Alembic `1a2b3c4d5e6f` (init) e `68348fb2d833` (redação: `Redacao`/`Correcao` + campos de proposta em `Aula`). **Estado atual do `dev.db`** (set/2026): 1 professora (Carla), 3 turmas (TURMA 1 regular 2 aulas, TURMA 2 intensivo 2 aulas, TURMA 3 regular 1 aula), 5 aulas, 2 alunos, 3 matrículas (aluno2→T1, aluno2→T2, aluno3→T1); tabelas `redacoes`/`correcoes` criadas pela migração (vazias).
 
 ## Features (MVP Semana 1 — RF01 a RF07 ✅)
 
@@ -59,11 +61,19 @@ Migração Alembic `1a2b3c4d5e6f` (init). **Estado atual do `dev.db`** (set/2026
 - **RF06** Dashboard: turmas + barra de progresso (%) + últimas concluídas; nav por papel.
 - **RF07** Cronograma: HTML `@media print` + botão Imprimir (PDF WeasyPrint: pendente).
 
+## Features (Semanas 2-3 — RF08 a RF10 ✅)
+
+- **RF08** Proposta de redação: professora anexa tema/texto_apoio/comando à aula (`/professor/turmas/{id}/aulas/{id}/proposta`); aluno envia redação (textarea) — uma por matrícula+aula, texto vazio rejeitado; botão "Enviar Redação" na página da turma quando há proposta.
+- **RF09** Correção: lista de redações com filtro por turma e contador de pendentes no dashboard da professora; notas C1–C5 (0–200) + comentário geral; correção única (duplicada → erro amigável).
+- **RF10** Histórico: aluno vê minhas redações (`/redacoes`) e detalhe com tabela C1–C5, total /1000 e comentário (`/redacoes/{id}`); página da redação mostra correção quando corrigida.
+
 ## Business rules
 
 - Sessão por cookie assinado; todo POST exige `verificar_csrf` (token na sessão + campo oculto).
 - Propriedade sempre validada (turma/aula pertence à professora logada; matrícula do aluno).
 - Matrícula e conclusão idempotentes; concluir aula de turma não matriculada → erro.
+- Redação: uma por matrícula+aula (UNIQUE); submissão exige matrícula e aula da turma da matrícula (anti-trapaça); correção única (redacao_id unique); notas C1–C5 validadas em 0–200 no service.
+- Query params vindos de select (ex.: filtro de turma) chegam como `str` — vazio é válido ("Todas as turmas" envia `?turma_id=`); nunca declarar `int` em query param opcional de filtro.
 - Embed usa domínio canônico `https://www.youtube.com/embed/{id}?rel=0` (nocookie falhava com "Video unavailable").
 - Flash: lista `[categoria, texto]` (success|error|info) — NÃO mudar para dict (base.html e testes dependem).
 
@@ -71,11 +81,12 @@ Migração Alembic `1a2b3c4d5e6f` (init). **Estado atual do `dev.db`** (set/2026
 
 - `turma_service`: `criar_turma`, `editar_turma`, `excluir_turma`, `listar_turmas_por_professor`, `TIPOS_VALIDOS`.
 - `aula_service`: `adicionar_aula`, `editar_aula`, `excluir_aula`, `reordenar_aulas`, `mover_aula`, getters (`buscar_turma_do_professor`, `buscar_aula_da_professora`, `listar_aulas_da_turma`).
-- `matricula_service`: `matricular`, `listar_turmas_disponiveis`, `ja_matriculado`, `dados_dashboard`, `concluir_aula`, `listar_aulas_para_aluno`, `calcular_progresso`.
+- `matricula_service`: `matricular`, `listar_turmas_disponiveis`, `ja_matriculado`, `dados_dashboard`, `concluir_aula`, `listar_aulas_para_aluno` (itens com `tema` p/ botão de redação), `calcular_progresso`.
+- `redacao_service`: `criar_proposta`, `listar_redacoes_pendentes`, `contar_redacoes_pendentes`, `obter_redacao_para_correcao`, `corrigir_redacao`, `submeter_redacao`, `listar_redacoes_do_aluno`, `obter_redacao_com_correcao`, `obter_dados_redacao_do_aluno`, `COMPETENCIAS`/`NOTA_MIN`/`NOTA_MAX`.
 
 ## Tests
 
-49 verdes: E2E (`test_auth`, `test_professor`, `test_aluno`, `test_progresso`) + unitários de services (`test_services`) + regressões de nav/select. Sempre TestClient + SQLite em /tmp (nunca no dev.db).
+65 verdes: E2E (`test_auth`, `test_professor`, `test_aluno`, `test_progresso`, `test_redacao` — 16 testes do fluxo de redação) + unitários de services (`test_services`) + regressões de nav/select. Sempre TestClient + SQLite em /tmp (nunca no dev.db).
 
 ## Bugs corrigidos (lições)
 
@@ -87,6 +98,7 @@ Migração Alembic `1a2b3c4d5e6f` (init). **Estado atual do `dev.db`** (set/2026
 6. Select "Tipo" vazio (refactor perdeu `tipos` no contexto) → passar `TIPOS_VALIDOS`.
 7. `base.html` em recursão (tag `{% extends %}` dentro de comentário HTML — Jinja processa tags em comentários).
 8. `raise RedirectResponse` em dependência → retorno/`RedirecionarComFlash`.
+9. Filtro "Todas as turmas" gerava 422 (`?turma_id=` vazio não vira `int`) → rota aceita `str` e converte (vazio → None; não-dígito → flash de erro).
 
 ## Conventions
 
@@ -99,13 +111,11 @@ Migração Alembic `1a2b3c4d5e6f` (init). **Estado atual do `dev.db`** (set/2026
 - Testes novos obrigatórios para qualquer mudança de rota/template (E2E) ou service (unit).
 - Ruff: `venv/bin/ruff check .` e `venv/bin/ruff format .` antes de commit (config em `ruff.toml`; B008 Depends/Form e BLE001 services são exceções intencionais).
 
-## Next: Semanas 2-3 — Redação (RF08-10)
+## Next (pós-Redação)
 
-- Models novos: `Redacao` (aluno, aula, tema, texto, status) e `Correcao` (redacao, notas C1-C5, comentários); campos em `Aula`: `tema`, `texto_apoio`, `comando` → migração Alembic nova.
-- Service novo: `redacao_service.py` (submissão, correção, histórico).
-- Rotas: `professor.py` (proposta na aula, corrigir redação) e `aluno.py` (submeter, ver correção).
-- Templates: `proposta_form`, `submeter_redacao`, `redacoes_lista`, `corrigir_redacao`, `historico_redacoes`, `ver_correcao`.
-- Testes E2E do fluxo completo de redação.
+- Refinamentos RF08–10: limite de caracteres/upload na submissão; comentário por competência (hoje só geral); gráfico de evolução das notas; destaque de trechos.
+- Deploy: Dockerfile + Railway/Render + Postgres gerenciado.
+- Financeiro (RF11-13), Analytics (RF14-15), Multi-professor (RF16), Extras (RF17-18) — ver Backlog futuro.
 
 ## Backlog futuro
 

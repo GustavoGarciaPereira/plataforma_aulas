@@ -1,12 +1,12 @@
 # ✍️ Plataforma de Redação
 
-Plataforma web para uma professora de redação publicar **trilhas de aulas** (vídeos do YouTube), com **matrícula de alunos**, **controle de progresso** e **cronograma para download** — o MVP (Semana 1) do PRD está completo e testado.
+Plataforma web para uma professora de redação publicar **trilhas de aulas** (vídeos do YouTube), com **matrícula de alunos**, **controle de progresso**, **cronograma para download** e **correção de redações por competências (C1–C5)** — o MVP (Semana 1) e a fase Redação (RF08–RF10) do PRD estão completos e testados.
 
 > Documentos de referência: [PRD v1.1](PRD.md) (requisitos e decisões) · [AGENTS.md](AGENTS.md) (memória técnica do projeto)
 
 ---
 
-## ✅ Funcionalidades (MVP — RF01 a RF07)
+## ✅ Funcionalidades (RF01 a RF10)
 
 | | Funcionalidade |
 |---|---|
@@ -17,6 +17,10 @@ Plataforma web para uma professora de redação publicar **trilhas de aulas** (v
 | ▶️ | Página da turma com player e botão **"Marcar como concluída"** (anti-trapaça, idempotente) |
 | 📊 | Dashboard do aluno com barra de progresso e últimas aulas concluídas |
 | 🖨️ | Cronograma da turma otimizado para impressão (Imprimir/Salvar PDF) |
+| ✍️ | Proposta de redação na aula (tema, texto de apoio, comando) — professora |
+| 📝 | Submissão da redação pelo aluno (uma por matrícula+aula, anti-trapaça) |
+| ✅ | Correção por competências C1–C5 (0–200) + comentário geral, com contador de pendentes no dashboard da professora |
+| 📜 | Histórico do aluno: notas detalhadas, total /1000 e devolutiva |
 
 ## 🧱 Stack
 
@@ -60,7 +64,7 @@ Acesse **http://127.0.0.1:8000** — você será redirecionado para o login.
 ## 🧪 Testes
 
 ```bash
-venv/bin/python -m pytest tests/ -q    # 49 testes (E2E + unitários)
+venv/bin/python -m pytest tests/ -q    # 65 testes (E2E + unitários)
 ```
 
 Os testes usam SQLite temporário em `/tmp` — **nunca** tocam no `dev.db` real.
@@ -85,9 +89,9 @@ Para corrigir erros de lint automaticamente: `venv/bin/ruff check . --fix`
 app/
   main.py            # aplicação + middlewares + rotas
   routers/           # auth, professor, aluno, utils (finos)
-  services/          # turma_service, aula_service, matricula_service
+  services/          # turma_service, aula_service, matricula_service, redacao_service
   models/            # pacote: base.py + 1 módulo por model (Professor, Aluno, Turma, ...)
-  templates/         # 11 templates Jinja2 (Tailwind CDN)
+  templates/         # 18 templates Jinja2 (Tailwind CDN)
   utils/             # youtube, csrf, flash, redirecionar
   config.py          # settings (.env)
 alembic/             # migrações
@@ -98,7 +102,7 @@ PRD.md · AGENTS.md   # requisitos e memória do projeto
 ## 🗺️ Roadmap
 
 - ✅ **Semana 1 (MVP):** RF01–RF07 — trilha de aulas, progresso, cronograma
-- ⏳ **Semanas 2-3:** Redação — propostas, correção por competências (C1–C5), histórico (RF08–10)
+- ✅ **Semanas 2-3:** Redação — propostas, correção por competências (C1–C5), histórico (RF08–10)
 - ⏳ **Semanas 4-5:** Financeiro — planos e pagamentos (RF11–13)
 - ⏳ **Semanas 6-7:** Analytics — dashboards do professor (RF14–15)
 - ⏳ **Semana 8+:** Múltiplos professores e extras (RF16–18)
