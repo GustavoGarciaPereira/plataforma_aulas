@@ -65,6 +65,20 @@ venv/bin/python -m pytest tests/ -q    # 49 testes (E2E + unitários)
 
 Os testes usam SQLite temporário em `/tmp` — **nunca** tocam no `dev.db` real.
 
+## ✨ Lint e formatação (Ruff)
+
+O projeto usa **Ruff** (linter + formatter em um binário, estilo Black). Config em `ruff.toml` (Python 3.12, linha de 100 caracteres; exceções documentadas: `Depends()`/`Form()` do FastAPI e `except Exception` nos services).
+
+```bash
+venv/bin/ruff check .        # lint — aponta erros e imports não usados
+venv/bin/ruff format .       # formata o código automaticamente
+venv/bin/ruff format --check .   # verifica se está tudo formatado (CI)
+```
+
+**Fluxo recomendado antes de cada commit:** `ruff check .` → `ruff format .` → `pytest tests/ -q`
+
+Para corrigir erros de lint automaticamente: `venv/bin/ruff check . --fix`
+
 ## 📁 Estrutura
 
 ```
